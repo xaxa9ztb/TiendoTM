@@ -566,32 +566,56 @@ function extract(raw){
 
   /* ---- Số hợp đồng ---- */
   let v=grab(/(?:hop\s*dong\s*(?:mua\s*ban\s*|kinh\s*te\s*)?so|so\s*hop\s*dong|so\s*hd|hd\s*so|contract\s*(?:no|number)\.?)\s*[:.\-]?\s*([0-9][0-9a-z\/.\-]{2,28})/d);
+  // "Số: 19943/SCH-LT" ở đầu dòng ngay dưới tiêu đề hợp đồng
+  if(!v)v=grab(/(?:^|\n)\s*so\s*[:.\-]?\s*([0-9][0-9a-z\/.\-]{2,28})/d);
   // dự phòng: token dạng "07/HDKT-2026" (có chữ cái sau dấu / nên không nhầm với ngày dd/mm/yyyy)
   if(!v)v=grab(/\bso\s*[:.\-]?\s*(\d{1,4}\/[a-z][0-9a-z\/.\-]{1,24})/d);
   if(v){S.project.no=v.replace(/\s+/g,"");det("d_contract");hits++;}
 
-  /* ---- Ngày ký hợp đồng ---- */
-  let dm=/(?:ky\s*ngay|ngay\s*ky|hom\s*nay,?\s*ngay|hop\s*dong[^\n]{0,30}?ngay)\s*[:.\-]?\s*(\d{1,2})\s*(?:thang|[\/.\-])\s*(\d{1,2})\s*(?:nam|[\/.\-])\s*(\d{4})/d.exec(P)
-        ||/\bngay\s*(\d{1,2})\s*thang\s*(\d{1,2})\s*nam\s*(\d{4})/d.exec(P);
+  /* ---- Ngày ký hợp đồng (ưu tiên cụm "lập/ký ngày", tránh nhầm ngày uỷ quyền/POA) ---- */
+  const D="(\\d{1,2})\\s*(?:thang|[\\/.\\-])\\s*(\\d{1,2})\\s*(?:nam|[\\/.\\-])\\s*(\\d{4})";
+  let dm=new RegExp(`(?:duoc\\s*lap\\s*ngay|lap\\s*ngay|ky\\s*ngay|ngay\\s*ky|hom\\s*nay,?\\s*ngay|hop\\s*dong[^\\n]{0,30}?ngay)\\s*[:.\\-]?\\s*${D}`,"d").exec(P)
+        ||new RegExp(`\\bngay\\s*${D}`,"d").exec(P);
   if(dm){S.project.cdate=`${pad2(dm[1])}/${pad2(dm[2])}/${dm[3]}`;det("d_cdate");hits++;}
 
-  /* ---- Khối Bên Mua / Bên Bán ---- */
-  const idxOf=res=>{for(const re of res){const m=re.exec(P);if(m)return m.index;}return -1;};
-  const iBuyer=idxOf([/ben\s*mua/,/\bben\s*a\b/,/chu\s*dau\s*tu/,/khach\s*hang/]);
-  const iSeller=idxOf([/ben\s*ban/,/\bben\s*b\b/,/nha\s*cung\s*cap/,/nha\s*thau/]);
-  function block(start,other){
-    if(start<0)return null;
-    let end=R.length;
-    if(other>start&&other<end)end=other;
-    end=Math.min(end,start+900);
-    return {text:R.slice(start,end),p:P.slice(start,end)};
+  /* ---- Khối Bên Mua / Bên Bán ----
+     Hỗ trợ 2 kiểu bố cục hợp đồng VN:
+       A) Nhãn tiêu đề ĐẦU khối:  "BÊN MUA (BÊN A): …"
+       B) Chi tiết đứng TRƯỚC, cuối khối mới ghi:  … (dưới đây gọi là "Bên Mua")
+  */
+  function idxFirst(res){for(const re of res){const m=re.exec(P);if(m)return m.index;}return -1;}
+  const callBuyer=/(?:duoi\s*day\s*|sau\s*day\s*)?(?:duoc\s*)?goi\s*(?:tat\s*)?la[\s"'“”)(]*ben\s*mua/.exec(P);
+  const callSeller=/(?:duoi\s*day\s*|sau\s*day\s*)?(?:duoc\s*)?goi\s*(?:tat\s*)?la[\s"'“”)(]*ben\s*ban/.exec(P);
+  const mk=(s,e)=>({text:R.slice(s,e),p:P.slice(s,e)});
+  let bBuyer=null,bSeller=null;
+  if(callBuyer||callSeller){                       // kiểu B — nhãn ở cuối khối
+    if(callBuyer){
+      const giua=/\b(?:giua|gom)\s*:?/g;let g,gs=-1;
+      while((g=giua.exec(P))){if(g.index<callBuyer.index)gs=g.index+g[0].length;else break;}
+      bBuyer=mk(gs>=0?gs:Math.max(0,callBuyer.index-750),callBuyer.index);
+    }
+    if(callSeller)bSeller=mk(callBuyer?callBuyer.index+callBuyer[0].length:Math.max(0,callSeller.index-750),callSeller.index);
+  }else{                                           // kiểu A — nhãn tiêu đề ở đầu khối
+    const ib=idxFirst([/(?:^|\n)\s*ben\s*mua\b\s*(?:\([^)]*\))?\s*[:\-]/,/(?:^|\n)\s*ben\s*a\b\s*[:\-]/,/chu\s*dau\s*tu/,/khach\s*hang/]);
+    const is=idxFirst([/(?:^|\n)\s*ben\s*ban\b\s*(?:\([^)]*\))?\s*[:\-]/,/(?:^|\n)\s*ben\s*b\b\s*[:\-]/,/nha\s*cung\s*cap/,/nha\s*thau/]);
+    if(ib>=0)bBuyer=mk(ib,is>ib?is:ib+900);
+    if(is>=0)bSeller=mk(is,ib>is?ib:is+900);
   }
-  const bBuyer=block(iBuyer,iSeller), bSeller=block(iSeller,iBuyer);
   function inBlock(blk,re,g=1){if(!blk)return null;re.lastIndex=0;const m=re.exec(blk.p);if(!m||!m.indices||!m.indices[g])return null;const val=clean(blk.text.slice(m.indices[g][0],m.indices[g][1]));return val||null;}
+  // dòng "nội dung" đầu tiên của khối (bỏ qua các dòng nhãn: địa chỉ, điện thoại, MST…)
+  function firstContentLine(blk){if(!blk)return null;
+    for(const ln of blk.text.split(/\n/).map(s=>s.trim()).filter(Boolean)){
+      if(ln.length<5)continue;
+      const d=deacc(ln);
+      if(/^(dia\s*chi|dien\s*thoai|so\s*dien|ma\s*so|masothue|email|fax|tai\s*khoan|so\s*tai|dai\s*dien|chuc\s*vu|va$|so\s*[:\-])/.test(d))continue;
+      if(/^["'“”(]/.test(ln))continue;
+      return clean(ln);
+    }return null;}
 
-  let buyerName=inBlock(bBuyer,/(?:ten(?:\s*(?:cong\s*ty|khach\s*hang|don\s*vi|to\s*chuc))?|chu\s*dau\s*tu|don\s*vi(?:\s*mua)?)\s*[:\-]\s*([^\n]{3,90})/d)
-    ||inBlock(bBuyer,/(?:ben\s*mua|ben\s*a)\s*(?:\([^)]*\))?\s*[:\-]\s*([^\n]{4,90})/d)
-    ||inBlock(bBuyer,/(?:^|\n)\s*((?:cong\s*ty|tong\s*cong\s*ty|ban\s*quan\s*ly|ban\s*qlda|cong\s*ty\s*co\s*phan|cong\s*ty\s*tnhh)[^\n]{2,80})/d);
+  let buyerName=inBlock(bBuyer,/(?:ten(?:\s*(?:cong\s*ty|khach\s*hang|don\s*vi|to\s*chuc))?|don\s*vi(?:\s*mua)?)\s*[:\-]\s*([^\n]{3,90})/d)
+    ||inBlock(bBuyer,/(?:ben\s*mua|ben\s*a|chu\s*dau\s*tu)\s*(?:\([^)]*\))?\s*[:\-]\s*([^\n]{4,90})/d)
+    ||inBlock(bBuyer,/(?:^|\n)\s*((?:chi\s*nhanh\s*)?(?:cong\s*ty|tong\s*cong\s*ty|ban\s*quan\s*ly|ban\s*qlda|uy\s*ban|trung\s*tam|doanh\s*nghiep|hop\s*tac\s*xa)[^\n]{2,80})/d)
+    ||firstContentLine(bBuyer);
   if(buyerName){S.project.buyer=buyerName;det("d_buyer");hits++;}
   let rep=inBlock(bBuyer,/(?:nguoi\s*)?dai\s*dien(?:\s*(?:theo\s*phap\s*luat|boi|la))?\s*[:\-]?\s*(?:ong|ba|mr|ms|mrs)?\.?\s*([a-z][^\n,;(]{2,45})/d);
   if(rep){rep=rep.replace(/\s*[-–].*$/,"").replace(/\s*(?:chuc\s*vu|chức\s*vụ).*$/i,"").trim();S.project.rep=rep;det("d_rep");hits++;}
@@ -599,7 +623,8 @@ function extract(raw){
   if(baddr){S.project.baddr=baddr;det("d_baddr");hits++;}
   let sellerName=inBlock(bSeller,/(?:ten(?:\s*(?:cong\s*ty|don\s*vi))?|nha\s*cung\s*cap|nha\s*thau|don\s*vi\s*ban)\s*[:\-]\s*([^\n]{3,90})/d)
     ||inBlock(bSeller,/(?:ben\s*ban|ben\s*b)\s*(?:\([^)]*\))?\s*[:\-]\s*([^\n]{4,90})/d)
-    ||inBlock(bSeller,/(?:^|\n)\s*((?:cong\s*ty|tong\s*cong\s*ty|cong\s*ty\s*tnhh|cong\s*ty\s*co\s*phan)[^\n]{2,80})/d);
+    ||inBlock(bSeller,/(?:^|\n)\s*((?:chi\s*nhanh\s*)?(?:cong\s*ty|tong\s*cong\s*ty|cong\s*ty\s*tnhh|cong\s*ty\s*co\s*phan)[^\n]{2,80})/d)
+    ||firstContentLine(bSeller);
   if(sellerName){S.project.seller=sellerName;det("d_seller");hits++;}
   if(!S.project.seller&&/schindler/.test(P)){S.project.seller="Schindler Vietnam Ltd.";det("d_seller");hits++;}
 
@@ -607,7 +632,8 @@ function extract(raw){
   let pj=grab(/(?:ten\s*(?:du\s*an|cong\s*trinh)|du\s*an|cong\s*trinh|ten\s*goi\s*du\s*an)\s*[:\-]\s*([^\n]{4,90})/d)
     ||grab(/(cao\s*oc[^\n]{3,80}|toa\s*nha[^\n]{3,80}|chung\s*cu[^\n]{3,80}|khach\s*san[^\n]{3,80}|trung\s*tam[^\n]{3,80})/d);
   if(pj){S.project.name=pj;det("d_project");hits++;}
-  let paddr=grab(/(?:dia\s*diem(?:\s*xay\s*dung|\s*du\s*an|\s*cong\s*trinh)?|dia\s*chi\s*(?:du\s*an|cong\s*trinh)|vi\s*tri\s*(?:du\s*an|cong\s*trinh|xay\s*dung))\s*[:\-]\s*([^\n]{5,120})/d);
+  let paddr=grab(/(?:dia\s*diem(?:\s*xay\s*dung|\s*du\s*an|\s*cong\s*trinh)?|dia\s*chi\s*(?:du\s*an|cong\s*trinh)|vi\s*tri\s*(?:du\s*an|cong\s*trinh|xay\s*dung))\s*[:\-]\s*([^\n]{5,120})/d)
+    ||grab(/(?:cong\s*trinh|du\s*an)\s*[:\-][^\n]{0,90}\n\s*dia\s*chi\s*[:\-]?\s*([^\n]{5,120})/d);
   if(paddr){S.project.addr=paddr;det("d_paddr");hits++;}
 
   /* ---- Thông số cơ bản của thang ---- */
