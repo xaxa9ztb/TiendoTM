@@ -105,7 +105,7 @@ table.edit td.x{width:36px;text-align:center}
 .gt tr.sec td{background:var(--sec);font-weight:700}
 .gt tr.tot td{background:var(--total);font-weight:700}
 .gt td.c{text-align:center;font-family:var(--mono);font-size:10.5px}
-.gt .b-P{background:var(--navy-2)}.gt .b-I{background:var(--red)}.gt .b-H{background:var(--green)}.gt .b-M{background:#000}
+.gt td.g.b-P{background:var(--navy-2)}.gt td.g.b-I{background:var(--red)}.gt td.g.b-H{background:var(--green)}.gt td.g.b-M{background:#000}
 .legend{display:flex;gap:26px;margin:14px 0 4px;font-size:11px;flex-wrap:wrap}
 .legend i{display:inline-block;width:16px;height:11px;margin-right:6px;vertical-align:-1px}
 .notes{font-size:10.8px;margin-top:12px}
@@ -682,11 +682,16 @@ function extract(raw){
     while((mm=re.exec(P))){const s=clean(R.slice(start,mm.index));if(s)segs.push({t:s,p:P.slice(start,mm.index)});start=mm.index+1;}
     const tail=clean(R.slice(start));if(tail)segs.push({t:tail,p:P.slice(start)});
   }
-  const condKw=/(ho\s*thang|nguon\s*dien|3\s*pha|ba\s*pha|moc\s*treo|chong\s*tham|ban\s*giao\s*mat\s*bang|gia\s*han|kiem\s*dinh|dieu\s*kien|voi\s*dieu\s*kien|chi\s*(?:duoc\s*)?lap\s*dat|bat\s*dau\s*lap\s*dat\s*khi|sau\s*khi\s*(?:thanh\s*toan|nhan)|thanh\s*toan\s*dot|tam\s*ung|ban\s*giao\s*ho\s*thang)/;
-  const condSents=[...new Set(segs.filter(x=>x.t.length>=28&&x.t.length<=320&&condKw.test(x.p)).map(x=>x.t))].slice(0,8);
+  // CHỈ giữ câu ẢNH HƯỞNG TIẾN ĐỘ; loại các câu bảo lãnh/bảo hành/thuế/phạt/tạm ứng thuần tài chính
+  const excludeKw=/bao\s*lanh|bao\s*hanh|bao\s*tri|thue|gtgt|phat\s*(?:vi\s*pham|cham|hop\s*dong|tien)|von\s*chu|hoa\s*don|khong\s*huy\s*ngang|chung\s*tu\s*thanh\s*toan|lai\s*suat/;
+  const schedKw=/ho\s*thang|nguon\s*dien|mat\s*bang|ke\s*tu\s*(?:thoi\s*diem|ngay|khi)|trong\s*vong\s*\d|truoc\s*(?:it\s*nhat\s*)?(?:\d|it\s*nhat)|chi\s*(?:duoc\s*)?(?:tien\s*hanh\s*)?lap\s*dat|(?:bat\s*dau|tien\s*hanh)\s*lap\s*dat|nghiem\s*thu\s*(?:dua\s*vao|thiet\s*bi)|dua\s*vao\s*thi\s*cong|hoan\s*chinh\s*(?:duoc\s*)?ban\s*giao|gia\s*han\s*(?:tien\s*do|thoi\s*gian|hop\s*dong)|kiem\s*dinh|chong\s*tham|dat\s*hang|phe\s*duyet\s*ban\s*ve|thanh\s*toan\s*dot|(?:dung|cham)\s*tien\s*do/;
+  const okSeg=(x,min)=>x.t.length>=min&&x.t.length<=340&&!/[:：]\s*$/.test(x.t)&&schedKw.test(x.p)&&!excludeKw.test(x.p);
+  // nghĩa vụ Bên Mua ảnh hưởng tiến độ — Bên Mua là chủ ngữ có động từ nghĩa vụ rõ ràng
+  const obActor=/ben\s*mua[^\n]{0,20}?(?:phai|co\s*trach\s*nhiem|co\s*nghia\s*vu|chiu\s*trach\s*nhiem|thuc\s*hien\s*cac\s*cong\s*tac)/;
+  const obSents=[...new Set(segs.filter(x=>okSeg(x,24)&&obActor.test(x.p)).map(x=>x.t))].slice(0,8);
+  const obSet=new Set(obSents);
+  const condSents=[...new Set(segs.filter(x=>okSeg(x,28)&&!obSet.has(x.t)).map(x=>x.t))].slice(0,8);
   if(condSents.length){S.conds=condSents;det("d_cond");hits++;}
-  const obDuty=/(co\s*trach\s*nhiem|co\s*nghia\s*vu|chiu\s*trach\s*nhiem|phai\s*(?:hoan\s*thanh|ban\s*giao|cung\s*cap|dam\s*bao|thanh\s*toan)|dam\s*bao|ban\s*giao|cung\s*cap|hoan\s*thanh|phoi\s*hop|thanh\s*toan)/;
-  const obSents=[...new Set(segs.filter(x=>x.t.length>=24&&x.t.length<=320&&/ben\s*mua/.test(x.p)&&obDuty.test(x.p)).map(x=>x.t))].slice(0,8);
   if(obSents.length){S.obligs=obSents;det("d_oblig");hits++;}
 
   pushForm();
