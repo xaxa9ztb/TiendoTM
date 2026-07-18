@@ -207,13 +207,16 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font
   <div class="panel">
     <h2><span class="no">04</span>Thông tin dự án &amp; hợp đồng</h2>
     <div class="grid g2">
-      <div class="f"><label>Tên dự án <span class="det hide" id="d_project">●OCR</span></label><input id="p_name" value=""></div>
-      <div class="f"><label>Địa chỉ</label><input id="p_addr" value=""></div>
       <div class="f"><label>Số hợp đồng <span class="det hide" id="d_contract">●OCR</span></label><input id="p_no" value=""></div>
-      <div class="f"><label>Thiết bị</label><input id="p_equip" value=""></div>
+      <div class="f"><label>Ngày ký hợp đồng <span class="det hide" id="d_cdate">●OCR</span></label><input id="p_cdate" value="" placeholder="dd/mm/yyyy"></div>
+      <div class="f"><label>Tên dự án <span class="det hide" id="d_project">●OCR</span></label><input id="p_name" value=""></div>
+      <div class="f"><label>Địa chỉ / địa điểm dự án <span class="det hide" id="d_paddr">●OCR</span></label><input id="p_addr" value=""></div>
       <div class="f"><label>Bên Mua / Chủ đầu tư <span class="det hide" id="d_buyer">●OCR</span></label><input id="p_buyer" value=""></div>
+      <div class="f"><label>Người đại diện Bên Mua <span class="det hide" id="d_rep">●OCR</span></label><input id="p_rep" value=""></div>
+      <div class="f"><label>Địa chỉ Bên Mua <span class="det hide" id="d_baddr">●OCR</span></label><input id="p_baddr" value=""></div>
       <div class="f"><label>Bên Bán / Nhà thầu <span class="det hide" id="d_seller">●OCR</span></label><input id="p_seller" value=""></div>
-      <div class="f" style="grid-column:1/-1"><label>Căn cứ lập tiến độ</label><input id="p_basis" value=""></div>
+      <div class="f"><label>Thiết bị (thang máy) <span class="det hide" id="d_equip">●OCR</span></label><input id="p_equip" value=""></div>
+      <div class="f"><label>Căn cứ lập tiến độ</label><input id="p_basis" value=""></div>
     </div>
   </div>
 
@@ -236,9 +239,12 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font
   </div>
 
   <div class="panel">
-    <h2><span class="no">06</span>Điều kiện hợp đồng liên quan thi công <span class="det hide" id="d_cond" style="font-size:11px;color:var(--green)">●OCR đã trích một số điều kiện</span></h2>
-    <p class="hint">Mỗi dòng là một ghi chú sẽ in ở phần "Ghi chú &amp; điều kiện thực hiện" của bảng tiến độ.</p>
+    <h2><span class="no">06</span>Điều kiện &amp; mốc tiến độ có điều kiện <span class="det hide" id="d_cond" style="font-size:11px;color:var(--green)">●OCR đã trích một số điều kiện</span></h2>
+    <p class="hint">Mỗi dòng là một ghi chú/điều kiện (ví dụ: chỉ lắp đặt khi đã thanh toán &amp; hố thang được bàn giao) sẽ in ở mục "Ghi chú &amp; điều kiện thực hiện".</p>
     <textarea id="conds" rows="7" style="font-size:12.5px;line-height:1.6"></textarea>
+    <h2 style="font-size:15px;margin:20px 0 4px"><span class="no" style="background:var(--navy)">06b</span>Nghĩa vụ Bên Mua ảnh hưởng tiến độ <span class="det hide" id="d_oblig" style="font-size:11px;color:var(--green)">●OCR</span></h2>
+    <p class="hint">Các nghĩa vụ/công việc Bên Mua phải hoàn thành đồng bộ để không ảnh hưởng mốc tiến độ (bàn giao mặt bằng, hố thang, cấp nguồn, thanh toán…). Mỗi dòng một mục.</p>
+    <textarea id="obligs" rows="5" style="font-size:12.5px;line-height:1.6"></textarea>
   </div>
 
   <div class="row" style="justify-content:space-between">
@@ -270,7 +276,7 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font
    STATE
 ================================================================ */
 const S = {
-  project:{name:"", addr:"", no:"", equip:"", buyer:"", seller:"",
+  project:{name:"", addr:"", no:"", cdate:"", equip:"", buyer:"", rep:"", baddr:"", seller:"",
     basis:"Điều 4 Hợp đồng – Tổng thời gian hoàn thành theo hợp đồng (không bao gồm Thứ 7, Chủ nhật, ngày nghỉ lễ theo quy định)"},
   steps:[
     ["Nhận bàn giao hố thang, kiểm tra kích thước & điều kiện thi công",1],
@@ -302,6 +308,7 @@ const S = {
     "Các công việc do Bên Mua thực hiện (Phụ lục B & bản vẽ thi công đã duyệt) phải hoàn thành đồng bộ với tiến độ này.",
     "Thời gian hoàn thành được gia hạn theo hợp đồng trong các trường hợp: công việc phát sinh; chậm trễ do Bên Mua/Nhà tư vấn/nhà thầu khác; trở ngại từ cơ quan Nhà nước; các trường hợp loại trừ.",
   ],
+  obligs:[],
 };
 
 /* ================================================================
@@ -396,15 +403,17 @@ function esc(s){return String(s??"").replace(/&/g,"&amp;").replace(/"/g,"&quot;"
 ================================================================ */
 function pullForm(){
   const P=S.project;
-  P.name=v("p_name");P.addr=v("p_addr");P.no=v("p_no");P.equip=v("p_equip");
-  P.buyer=v("p_buyer");P.seller=v("p_seller");P.basis=v("p_basis");
+  P.name=v("p_name");P.addr=v("p_addr");P.no=v("p_no");P.cdate=v("p_cdate");P.equip=v("p_equip");
+  P.buyer=v("p_buyer");P.rep=v("p_rep");P.baddr=v("p_baddr");P.seller=v("p_seller");P.basis=v("p_basis");
   S.conds=document.getElementById("conds").value.split("\n").map(s=>s.trim()).filter(Boolean);
+  S.obligs=document.getElementById("obligs").value.split("\n").map(s=>s.trim()).filter(Boolean);
 }
 function pushForm(){
   const P=S.project;
-  sv("p_name",P.name);sv("p_addr",P.addr);sv("p_no",P.no);sv("p_equip",P.equip);
-  sv("p_buyer",P.buyer);sv("p_seller",P.seller);sv("p_basis",P.basis);
+  sv("p_name",P.name);sv("p_addr",P.addr);sv("p_no",P.no);sv("p_cdate",P.cdate);sv("p_equip",P.equip);
+  sv("p_buyer",P.buyer);sv("p_rep",P.rep);sv("p_baddr",P.baddr);sv("p_seller",P.seller);sv("p_basis",P.basis);
   document.getElementById("conds").value=S.conds.join("\n");
+  document.getElementById("obligs").value=S.obligs.join("\n");
 }
 function v(id){return document.getElementById(id).value.trim();}
 function sv(id,val){document.getElementById(id).value=val||"";}
@@ -441,42 +450,43 @@ async function handleFile(f){
       pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
       const buf=await f.arrayBuffer();
       const pdf=await pdfjsLib.getDocument({data:buf}).promise;
-      const N=Math.min(pdf.numPages,15);
+      const N=Math.min(pdf.numPages,20);
       log(`▸ PDF có ${pdf.numPages} trang, xử lý ${N} trang đầu.`);
-      // 1) try text layer
+      // 1) thử lớp text (giữ cấu trúc dòng để trích xuất theo khối chính xác hơn)
       let tl="";
       for(let p=1;p<=N;p++){
         const page=await pdf.getPage(p);
         const tc=await page.getTextContent();
-        tl+=tc.items.map(i=>i.str).join(" ")+"\n";
+        tl+=itemsToLines(tc.items)+"\n\n";
       }
       if(tl.replace(/\s/g,"").length>400){
         log("▸ PDF có lớp text — dùng trực tiếp, không cần OCR.");fullText=tl;prog(1);
       }else{
-        log("▸ PDF là bản scan — chạy OCR tiếng Việt (Tesseract.js)…");
-        const worker=await Tesseract.createWorker("vie",1,{logger:m=>{if(m.status==="recognizing text")prog((curPage-1+m.progress)/N);}});
+        log("▸ PDF là bản scan — render độ phân giải cao + tiền xử lý + OCR tiếng Việt…");
+        const worker=await mkWorker(m=>{if(m.status==="recognizing text")prog((curPage-1+m.progress)/N);});
         var curPage=0;
         for(let p=1;p<=N;p++){
           curPage=p;
           const page=await pdf.getPage(p);
-          const vp=page.getViewport({scale:1.7});
-          const cv=document.createElement("canvas");cv.width=vp.width;cv.height=vp.height;
-          await page.render({canvasContext:cv.getContext("2d"),viewport:vp}).promise;
+          const cv=await renderPage(page,2.6);
+          preprocess(cv);
           const {data}=await worker.recognize(cv);
-          fullText+=data.text+"\n";
+          fullText+=data.text+"\n\n";
           log(`   trang ${p}/${N} ✓`);
         }
         await worker.terminate();
       }
     }else{
-      log("▸ Ảnh — chạy OCR tiếng Việt…");
-      const worker=await Tesseract.createWorker("vie",1,{logger:m=>{if(m.status==="recognizing text")prog(m.progress);}});
-      const {data}=await worker.recognize(f);fullText=data.text;await worker.terminate();
+      log("▸ Ảnh — phóng nét, tiền xử lý & OCR tiếng Việt…");
+      const worker=await mkWorker(m=>{if(m.status==="recognizing text")prog(m.progress);});
+      const cv=await imageToCanvas(f,2200);
+      preprocess(cv);
+      const {data}=await worker.recognize(cv);fullText=data.text;await worker.terminate();
     }
     prog(1);
     log("▸ OCR hoàn tất. Đang trích xuất dữ liệu…");
-    extract(fullText);
-    document.getElementById("ocrstat").textContent="✓ Đã quét xong — chuyển sang bước 2 để kiểm tra & hiệu chỉnh.";
+    const hits=extract(fullText);
+    document.getElementById("ocrstat").textContent=`✓ Đã quét xong — nhận diện ${hits} nhóm thông tin. Sang bước 2 để kiểm tra & hiệu chỉnh.`;
     go(2);
   }catch(err){
     log("✗ Lỗi: "+err.message);
@@ -484,52 +494,177 @@ async function handleFile(f){
   }
 }
 
-/* ---------- heuristic extraction from Vietnamese contract text ---------- */
-function norm(s){return s.normalize("NFC").replace(/[ \t]+/g," ");}
-function extract(raw){
-  const t=norm(raw);
-  const det=(id)=>document.getElementById(id).classList.remove("hide");
-  let m;
-  // contract number
-  m=t.match(/(?:hợp\s*đồng\s*số|số\s*hợp\s*đồng|contract\s*no\.?)[:\s]*([A-Z]{1,4}[\s-]?\d{3,7})/i)||t.match(/\b([A-Z]{2}\d{4,6})\b/);
-  if(m){S.project.no=m[1].replace(/\s/g,"");det("d_contract");}
-  // project name — line after "Dự án" or an ALL-CAPS building line
-  m=t.match(/d[ựư]\s*án[^:\n]*[:\-]\s*([^\n]{6,90})/i);
-  if(!m)m=t.match(/(CAO\s*ỐC[^\n]{3,80}|T[OÒ]A\s*NH[ÀA][^\n]{3,80}|CHUNG\s*CƯ[^\n]{3,80}|KHÁCH\s*SẠN[^\n]{3,80})/i);
-  if(m){S.project.name=m[1].trim();det("d_project");}
-  // buyer / seller
-  m=t.match(/b[êe]n\s*mua[^:\n]{0,25}[:\-]\s*([^\n(]{5,90})/i);
-  if(m){S.project.buyer=m[1].trim();det("d_buyer");}
-  m=t.match(/b[êe]n\s*b[áa]n[^:\n]{0,25}[:\-]\s*([^\n(]{5,90})/i);
-  if(m){S.project.seller=m[1].trim();det("d_seller");}
-  if(!S.project.seller&&/schindler/i.test(t)){S.project.seller="Schindler Vietnam Ltd.";det("d_seller");}
-  // equipment
-  m=t.match(/(\d{1,2})\s*(?:\(.{1,10}\))?\s*thang\s*máy/i);
-  const model=t.match(/schindler\s*\d{4}|mitsubishi|kone|otis|thyssen|fuji/i);
-  const load=t.match(/(\d{3,4})\s*kg/i);
-  const speed=t.match(/(\d(?:[.,]\d{1,2})?)\s*m\/s/i);
-  const stops=t.match(/(\d{1,2})\s*(?:điểm\s*dừng|stops?)/i);
-  let eq=[];if(m)eq.push(`${m[1]} thang máy`);if(model)eq.push(model[0]);if(load)eq.push(load[1]+" kg");if(speed)eq.push(speed[1].replace(",",".")+" m/s");if(stops)eq.push(stops[1]+" điểm dừng");
-  if(eq.length)S.project.equip=eq.join(", ");
-  // phase durations
-  m=t.match(/s[ảa]n\s*xu[ấa]t[^\n0-9]{0,80}?(\d{1,3})\s*ng[àa]y/i);
-  if(m){document.getElementById("ph_prod").value=+m[1];det("d_prod");}
-  m=t.match(/l[ắa]p\s*đ[ặa]t[^\n0-9]{0,80}?(\d{1,3})\s*ng[àa]y/i);
-  if(m){det("d_inst");scaleSteps(+m[1]);}
-  m=t.match(/b[àa]n\s*giao[^\n0-9]{0,80}?(\d{1,3})\s*ng[àa]y/i);
-  if(m){document.getElementById("ph_hand").value=+m[1];det("d_hand");}
-  // day mode
-  if(/kh[ôo]ng\s*bao\s*g[ồo]m[\s\S]{0,120}?(th[ứư]\s*b[ảa]y|t7|ch[ủu]\s*nh[ậa]t)/i.test(t)){
-    document.querySelector("input[name=daymode][value=work]").checked=true;
+/* ---------- OCR helpers: worker, render, tiền xử lý ảnh, dựng dòng ---------- */
+async function mkWorker(logger){
+  const worker=await Tesseract.createWorker("vie",1,{logger});
+  try{await worker.setParameters({preserve_interword_spaces:"1",tessedit_pageseg_mode:"1",user_defined_dpi:"300"});}catch(e){}
+  return worker;
+}
+async function renderPage(page,scale){
+  const vp=page.getViewport({scale});
+  const cv=document.createElement("canvas");cv.width=vp.width;cv.height=vp.height;
+  await page.render({canvasContext:cv.getContext("2d",{willReadFrequently:true}),viewport:vp}).promise;
+  return cv;
+}
+function imageToCanvas(f,maxW){
+  return new Promise((res,rej)=>{
+    const img=new Image();
+    img.onload=()=>{
+      const sc=img.width>maxW?maxW/img.width:1.6; // phóng nhẹ ảnh nhỏ cho nét
+      const cv=document.createElement("canvas");
+      cv.width=Math.round(img.width*sc);cv.height=Math.round(img.height*sc);
+      cv.getContext("2d",{willReadFrequently:true}).drawImage(img,0,0,cv.width,cv.height);
+      URL.revokeObjectURL(img.src);res(cv);
+    };
+    img.onerror=rej;img.src=URL.createObjectURL(f);
+  });
+}
+function preprocess(cv){ // grayscale + tăng tương phản giúp OCR ổn định hơn với bản scan
+  const ctx=cv.getContext("2d",{willReadFrequently:true});
+  const im=ctx.getImageData(0,0,cv.width,cv.height),d=im.data;
+  for(let i=0;i<d.length;i+=4){
+    let g=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+    g=(g-128)*1.3+140;
+    d[i]=d[i+1]=d[i+2]=g<0?0:g>255?255:g;
   }
-  // total (informational, shown via basis)
-  m=t.match(/t[ổo]ng[^\n0-9]{0,60}?(\d{2,3})\s*ng[àa]y/i);
-  if(m)S.project.basis=`Điều khoản thời gian thực hiện của Hợp đồng – Tổng ${m[1]} ngày (theo cách tính đã chọn)`;
-  // conditions related to construction
-  const kw=/(h[ốo]\s*thang|ngu[ồo]n\s*đi[ệe]n|3\s*pha|m[óo]c\s*treo|ch[ốo]ng\s*th[ấa]m|b[àa]n\s*giao\s*m[ặa]t\s*b[ằa]ng|gia\s*h[ạa]n|kiểm\s*định|03\s*tu[ầa]n)/i;
-  const sents=t.split(/(?<=[.;])\s+|\n/).map(s=>s.trim()).filter(s=>s.length>40&&s.length<300&&kw.test(s));
-  if(sents.length){S.conds=[...new Set(sents)].slice(0,6);document.getElementById("d_cond").classList.remove("hide");}
+  ctx.putImageData(im,0,0);
+}
+function itemsToLines(items){ // dựng lại dòng từ text-layer PDF theo toạ độ y (gom item cùng dòng)
+  const rows=new Map();
+  items.forEach(it=>{
+    if(!it.str||!it.str.trim())return;
+    const y=Math.round(it.transform[5]);
+    let key=null;
+    for(const k of rows.keys()){if(Math.abs(k-y)<=3){key=k;break;}}
+    if(key===null){key=y;rows.set(key,[]);}
+    rows.get(key).push({x:it.transform[4],s:it.str});
+  });
+  return [...rows.keys()].sort((a,b)=>b-a)
+    .map(y=>rows.get(y).sort((a,b)=>a.x-b.x).map(o=>o.s).join(" ").replace(/\s+/g," ").trim())
+    .filter(Boolean).join("\n");
+}
+
+/* ================================================================
+   TRÍCH XUẤT DỮ LIỆU HỢP ĐỒNG (heuristic tiếng Việt)
+   Kỹ thuật: tạo bản KHÔNG DẤU cùng độ dài & cùng chỉ số ký tự để dò
+   từ khoá bằng mẫu đơn giản, rồi CẮT CHUỖI GỐC (còn dấu) theo đúng
+   vị trí index → giá trị trả về giữ nguyên dấu tiếng Việt.
+================================================================ */
+const _DEMAP=(()=>{const g={a:"àáảãạăằắẳẵặâầấẩẫậ",e:"èéẻẽẹêềếểễệ",i:"ìíỉĩị",o:"òóỏõọôồốổỗộơờớởỡợ",u:"ùúủũụưừứửữự",y:"ỳýỷỹỵ",d:"đ"};const m={};for(const b in g)for(const c of g[b])m[c]=b;return m;})();
+function deacc(s){let o="";for(let i=0;i<s.length;i++){const lc=s[i].toLowerCase();o+=(lc.length===1?(_DEMAP[lc]||lc):s[i]);}return o;}
+function pad2(n){return String(n).padStart(2,"0");}
+
+function extract(raw){
+  const R=raw.normalize("NFC");   // gốc còn dấu
+  const P=deacc(R);               // không dấu, cùng độ dài + cùng index với R
+  const det=id=>{const el=document.getElementById(id);if(el)el.classList.remove("hide");};
+  const clean=s=>s.replace(/\s+/g," ").replace(/^[\s:.\-–]+|[\s.;,]+$/g,"").trim();
+  const cut=(s,e)=>clean(R.slice(s,e));
+  let hits=0;
+  // dò 1 mẫu trên bản KHÔNG DẤU, trả CHUỖI GỐC theo group index
+  function grab(re,g=1){re.lastIndex=0;const m=re.exec(P);if(!m)return null;if(m.indices&&m.indices[g]){const v=cut(m.indices[g][0],m.indices[g][1]);return v||null;}return m[g]?clean(m[g]):null;}
+
+  /* ---- Số hợp đồng ---- */
+  let v=grab(/(?:hop\s*dong\s*(?:mua\s*ban\s*|kinh\s*te\s*)?so|so\s*hop\s*dong|so\s*hd|hd\s*so|contract\s*(?:no|number)\.?)\s*[:.\-]?\s*([0-9][0-9a-z\/.\-]{2,28})/d);
+  // dự phòng: token dạng "07/HDKT-2026" (có chữ cái sau dấu / nên không nhầm với ngày dd/mm/yyyy)
+  if(!v)v=grab(/\bso\s*[:.\-]?\s*(\d{1,4}\/[a-z][0-9a-z\/.\-]{1,24})/d);
+  if(v){S.project.no=v.replace(/\s+/g,"");det("d_contract");hits++;}
+
+  /* ---- Ngày ký hợp đồng ---- */
+  let dm=/(?:ky\s*ngay|ngay\s*ky|hom\s*nay,?\s*ngay|hop\s*dong[^\n]{0,30}?ngay)\s*[:.\-]?\s*(\d{1,2})\s*(?:thang|[\/.\-])\s*(\d{1,2})\s*(?:nam|[\/.\-])\s*(\d{4})/d.exec(P)
+        ||/\bngay\s*(\d{1,2})\s*thang\s*(\d{1,2})\s*nam\s*(\d{4})/d.exec(P);
+  if(dm){S.project.cdate=`${pad2(dm[1])}/${pad2(dm[2])}/${dm[3]}`;det("d_cdate");hits++;}
+
+  /* ---- Khối Bên Mua / Bên Bán ---- */
+  const idxOf=res=>{for(const re of res){const m=re.exec(P);if(m)return m.index;}return -1;};
+  const iBuyer=idxOf([/ben\s*mua/,/\bben\s*a\b/,/chu\s*dau\s*tu/,/khach\s*hang/]);
+  const iSeller=idxOf([/ben\s*ban/,/\bben\s*b\b/,/nha\s*cung\s*cap/,/nha\s*thau/]);
+  function block(start,other){
+    if(start<0)return null;
+    let end=R.length;
+    if(other>start&&other<end)end=other;
+    end=Math.min(end,start+900);
+    return {text:R.slice(start,end),p:P.slice(start,end)};
+  }
+  const bBuyer=block(iBuyer,iSeller), bSeller=block(iSeller,iBuyer);
+  function inBlock(blk,re,g=1){if(!blk)return null;re.lastIndex=0;const m=re.exec(blk.p);if(!m||!m.indices||!m.indices[g])return null;const val=clean(blk.text.slice(m.indices[g][0],m.indices[g][1]));return val||null;}
+
+  let buyerName=inBlock(bBuyer,/(?:ten(?:\s*(?:cong\s*ty|khach\s*hang|don\s*vi|to\s*chuc))?|chu\s*dau\s*tu|don\s*vi(?:\s*mua)?)\s*[:\-]\s*([^\n]{3,90})/d)
+    ||inBlock(bBuyer,/(?:ben\s*mua|ben\s*a)\s*(?:\([^)]*\))?\s*[:\-]\s*([^\n]{4,90})/d)
+    ||inBlock(bBuyer,/(?:^|\n)\s*((?:cong\s*ty|tong\s*cong\s*ty|ban\s*quan\s*ly|ban\s*qlda|cong\s*ty\s*co\s*phan|cong\s*ty\s*tnhh)[^\n]{2,80})/d);
+  if(buyerName){S.project.buyer=buyerName;det("d_buyer");hits++;}
+  let rep=inBlock(bBuyer,/(?:nguoi\s*)?dai\s*dien(?:\s*(?:theo\s*phap\s*luat|boi|la))?\s*[:\-]?\s*(?:ong|ba|mr|ms|mrs)?\.?\s*([a-z][^\n,;(]{2,45})/d);
+  if(rep){rep=rep.replace(/\s*[-–].*$/,"").replace(/\s*(?:chuc\s*vu|chức\s*vụ).*$/i,"").trim();S.project.rep=rep;det("d_rep");hits++;}
+  let baddr=inBlock(bBuyer,/(?:dia\s*chi|tru\s*so(?:\s*chinh)?)\s*[:\-]?\s*([^\n]{5,120})/d);
+  if(baddr){S.project.baddr=baddr;det("d_baddr");hits++;}
+  let sellerName=inBlock(bSeller,/(?:ten(?:\s*(?:cong\s*ty|don\s*vi))?|nha\s*cung\s*cap|nha\s*thau|don\s*vi\s*ban)\s*[:\-]\s*([^\n]{3,90})/d)
+    ||inBlock(bSeller,/(?:ben\s*ban|ben\s*b)\s*(?:\([^)]*\))?\s*[:\-]\s*([^\n]{4,90})/d)
+    ||inBlock(bSeller,/(?:^|\n)\s*((?:cong\s*ty|tong\s*cong\s*ty|cong\s*ty\s*tnhh|cong\s*ty\s*co\s*phan)[^\n]{2,80})/d);
+  if(sellerName){S.project.seller=sellerName;det("d_seller");hits++;}
+  if(!S.project.seller&&/schindler/.test(P)){S.project.seller="Schindler Vietnam Ltd.";det("d_seller");hits++;}
+
+  /* ---- Dự án ---- */
+  let pj=grab(/(?:ten\s*(?:du\s*an|cong\s*trinh)|du\s*an|cong\s*trinh|ten\s*goi\s*du\s*an)\s*[:\-]\s*([^\n]{4,90})/d)
+    ||grab(/(cao\s*oc[^\n]{3,80}|toa\s*nha[^\n]{3,80}|chung\s*cu[^\n]{3,80}|khach\s*san[^\n]{3,80}|trung\s*tam[^\n]{3,80})/d);
+  if(pj){S.project.name=pj;det("d_project");hits++;}
+  let paddr=grab(/(?:dia\s*diem(?:\s*xay\s*dung|\s*du\s*an|\s*cong\s*trinh)?|dia\s*chi\s*(?:du\s*an|cong\s*trinh)|vi\s*tri\s*(?:du\s*an|cong\s*trinh|xay\s*dung))\s*[:\-]\s*([^\n]{5,120})/d);
+  if(paddr){S.project.addr=paddr;det("d_paddr");hits++;}
+
+  /* ---- Thông số cơ bản của thang ---- */
+  let eq=[];
+  const mq=/(?:so\s*luong|cung\s*cap|lap\s*dat|gom)\D{0,18}?(\d{1,2})\s*(?:\([^)]{1,12}\))?\s*(?:bo\s*|chiec\s*|cai\s*)?thang\s*may/d.exec(P)||/(\d{1,2})\s*(?:\([^)]{1,12}\))?\s*(?:bo\s*)?thang\s*may/d.exec(P);
+  if(mq)eq.push(`${+mq[1]} thang máy`);
+  const BRANDS="schindler|mitsubishi|kone|otis|hyundai|fuji|thyssenkrupp|thyssen|hitachi|toshiba|nexiez";
+  let brand=new RegExp(`(${BRANDS})\\s*(\\d{3,4})\\b`,"d").exec(P); // ưu tiên hãng + model
+  if(brand)eq.push(cut(brand.indices[1][0],brand.indices[1][1])+" "+cut(brand.indices[2][0],brand.indices[2][1]));
+  else{brand=new RegExp(`(${BRANDS})`,"d").exec(P);if(brand)eq.push(cut(brand.indices[1][0],brand.indices[1][1]));}
+  const room=/(khong\s*phong\s*may|\bmrl\b|co\s*phong\s*may)/.exec(P);
+  if(room)eq.push(/khong|mrl/.test(room[0])?"không phòng máy (MRL)":"có phòng máy");
+  const load=/(?:tai\s*trong|kha\s*nang\s*tai|luu\s*luong)\D{0,10}?(\d{3,4})\s*kg/d.exec(P)||/(\d{3,4})\s*kg/d.exec(P);
+  if(load)eq.push(load[1]+" kg");
+  const person=/(\d{1,2})\s*(?:nguoi|person)/d.exec(P);
+  if(person&&!load)eq.push(person[1]+" người");
+  const stops=/(?:so\s*)?(?:diem\s*dung|dung\s*tang|so\s*tang\s*phuc\s*vu|stops?)\D{0,6}?(\d{1,2})/d.exec(P)||/(\d{1,2})\s*(?:diem\s*dung|stops?)/d.exec(P);
+  if(stops)eq.push(stops[1]+" điểm dừng");
+  const speed=/(?:toc\s*do|van\s*toc)\D{0,10}?(\d(?:[.,]\d{1,2})?)\s*m\s*\/?\s*s/d.exec(P)||/(\d(?:[.,]\d{1,2})?)\s*m\s*\/\s*s/d.exec(P);
+  if(speed)eq.push(speed[1].replace(",",".")+" m/s");
+  if(eq.length){S.project.equip=[...new Set(eq)].join(", ");det("d_equip");hits++;}
+
+  /* ---- Thời lượng các giai đoạn (ngày / tuần) ---- */
+  const dur=re=>{const m=re.exec(P);if(!m)return null;return /tuan/.test(m[2]||"")?(+m[1])*7:+m[1];};
+  const prod=dur(/(?:san\s*xuat|che\s*tao|nhap\s*khau|cung\s*cap\s*thiet\s*bi|giao\s*hang)[^\n0-9]{0,70}?(\d{1,3})\s*(ngay|tuan)/d);
+  if(prod){document.getElementById("ph_prod").value=prod;det("d_prod");hits++;}
+  const inst=dur(/(?:lap\s*dat|thi\s*cong\s*lap\s*dat)[^\n0-9]{0,70}?(\d{1,3})\s*(ngay|tuan)/d);
+  if(inst){det("d_inst");scaleSteps(inst);hits++;}
+  const hand=dur(/(?:ban\s*giao|nghiem\s*thu\s*ban\s*giao|dua\s*vao\s*su\s*dung)[^\n0-9]{0,70}?(\d{1,3})\s*(ngay|tuan)/d);
+  if(hand){document.getElementById("ph_hand").value=hand;det("d_hand");hits++;}
+
+  /* ---- Cách tính ngày (NLV hay ngày lịch) ---- */
+  // ưu tiên tín hiệu "không bao gồm T7/CN/lễ" (⇒ ngày làm việc) vì cụm này cũng chứa "bao gồm..."
+  const excl=/khong\s*(?:bao\s*gom|tinh|ke)[^\n]{0,50}(thu\s*7|thu\s*bay|chu\s*nhat|ngay\s*le|ngay\s*nghi)/.test(P)||/ngay\s*lam\s*viec/.test(P);
+  const incl=/(?:ke\s*ca|bao\s*gom\s*ca)\s*(?:thu\s*7|thu\s*bay|chu\s*nhat|ngay\s*nghi|ngay\s*le)|ngay\s*lich|tinh\s*lien\s*tuc/.test(P);
+  if(excl)document.querySelector("input[name=daymode][value=work]").checked=true;
+  else if(incl)document.querySelector("input[name=daymode][value=cal]").checked=true;
+
+  /* ---- Tổng thời gian (đưa vào căn cứ) ---- */
+  const tot=/(?:tong\s*(?:thoi\s*gian|cong)|tong\s*cong)[^\n0-9]{0,50}?(\d{2,3})\s*ngay/d.exec(P);
+  if(tot)S.project.basis=`Điều khoản thời gian thực hiện của Hợp đồng – Tổng ${tot[1]} ngày (theo cách tính đã chọn)`;
+
+  /* ---- Câu điều kiện mốc tiến độ & nghĩa vụ Bên Mua ---- */
+  const segs=[];{
+    let start=0,mm;const re=/[.;\n]/g;
+    while((mm=re.exec(P))){const s=clean(R.slice(start,mm.index));if(s)segs.push({t:s,p:P.slice(start,mm.index)});start=mm.index+1;}
+    const tail=clean(R.slice(start));if(tail)segs.push({t:tail,p:P.slice(start)});
+  }
+  const condKw=/(ho\s*thang|nguon\s*dien|3\s*pha|ba\s*pha|moc\s*treo|chong\s*tham|ban\s*giao\s*mat\s*bang|gia\s*han|kiem\s*dinh|dieu\s*kien|voi\s*dieu\s*kien|chi\s*(?:duoc\s*)?lap\s*dat|bat\s*dau\s*lap\s*dat\s*khi|sau\s*khi\s*(?:thanh\s*toan|nhan)|thanh\s*toan\s*dot|tam\s*ung|ban\s*giao\s*ho\s*thang)/;
+  const condSents=[...new Set(segs.filter(x=>x.t.length>=28&&x.t.length<=320&&condKw.test(x.p)).map(x=>x.t))].slice(0,8);
+  if(condSents.length){S.conds=condSents;det("d_cond");hits++;}
+  const obDuty=/(co\s*trach\s*nhiem|co\s*nghia\s*vu|chiu\s*trach\s*nhiem|phai\s*(?:hoan\s*thanh|ban\s*giao|cung\s*cap|dam\s*bao|thanh\s*toan)|dam\s*bao|ban\s*giao|cung\s*cap|hoan\s*thanh|phoi\s*hop|thanh\s*toan)/;
+  const obSents=[...new Set(segs.filter(x=>x.t.length>=24&&x.t.length<=320&&/ben\s*mua/.test(x.p)&&obDuty.test(x.p)).map(x=>x.t))].slice(0,8);
+  if(obSents.length){S.obligs=obSents;det("d_oblig");hits++;}
+
   pushForm();
+  return hits;
 }
 function scaleSteps(target){ // proportionally rescale 14 steps to match detected install duration
   const cur=S.steps.reduce((a,b)=>a+b.days,0);
@@ -556,8 +691,8 @@ function renderPreview(){
     <div class="co">${esc(P.seller||"NHÀ THẦU THANG MÁY")}</div>
     <h1>BẢNG TIẾN ĐỘ THỰC HIỆN DỰ ÁN / PROJECT MASTER SCHEDULE</h1>
     <div class="meta"><b>Dự án / Project:</b><span>${esc(P.name)}${P.addr?" – "+esc(P.addr):""}</span></div>
-    <div class="meta"><b>Hợp đồng số / Contract No.:</b><span>${esc(P.no)}${P.equip?"&nbsp;&nbsp;|&nbsp;&nbsp;Thiết bị: "+esc(P.equip):""}</span></div>
-    <div class="meta"><b>Bên Mua / Chủ đầu tư:</b><span>${esc(P.buyer)}</span></div>
+    <div class="meta"><b>Hợp đồng số / Contract No.:</b><span>${esc(P.no)}${P.cdate?"&nbsp;&nbsp;|&nbsp;&nbsp;Ngày ký: "+esc(P.cdate):""}${P.equip?"&nbsp;&nbsp;|&nbsp;&nbsp;Thiết bị: "+esc(P.equip):""}</span></div>
+    <div class="meta"><b>Bên Mua / Chủ đầu tư:</b><span>${esc(P.buyer)}${P.rep?"&nbsp;&nbsp;|&nbsp;&nbsp;Đại diện: "+esc(P.rep):""}${P.baddr?"&nbsp;&nbsp;|&nbsp;&nbsp;Địa chỉ: "+esc(P.baddr):""}</span></div>
     <div class="meta"><b>Căn cứ / Basis:</b><span>${esc(P.basis)} — tính theo ${unit}</span></div>
     <div class="meta"><b>Mốc khởi tính / Baseline:</b><span>${fmt(base)} – Ngày bản vẽ thi công được phê duyệt</span></div>`;
 
@@ -592,6 +727,10 @@ function renderPreview(){
 
   h+=`<div class="notes"><b>GHI CHÚ &amp; ĐIỀU KIỆN THỰC HIỆN:</b>`;
   S.conds.forEach((c,i)=>h+=`<p>${i+1}. ${esc(c)}</p>`);
+  if(S.obligs&&S.obligs.length){
+    h+=`<p style="margin-top:6px"><b>Nghĩa vụ Bên Mua ảnh hưởng tiến độ:</b></p>`;
+    S.obligs.forEach((c,i)=>h+=`<p>&nbsp;&nbsp;(${i+1}) ${esc(c)}</p>`);
+  }
   h+=`</div>`;
 
   const act=S.signers.filter(s=>s.on&&s.t.trim());
@@ -633,8 +772,8 @@ async function exportExcel(){
   ws.getRow(r).height=26;
   const unit=mode==="work"?"ngày làm việc":"ngày lịch";
   const info=[["Dự án / Project:",`${P.name}${P.addr?" – "+P.addr:""}`],
-    ["Hợp đồng số / Contract No.:",`${P.no}${P.equip?"   |   Thiết bị: "+P.equip:""}`],
-    ["Bên Mua / Chủ đầu tư:",P.buyer],
+    ["Hợp đồng số / Contract No.:",`${P.no}${P.cdate?"   |   Ngày ký: "+P.cdate:""}${P.equip?"   |   Thiết bị: "+P.equip:""}`],
+    ["Bên Mua / Chủ đầu tư:",`${P.buyer}${P.rep?"   |   Đại diện: "+P.rep:""}${P.baddr?"   |   Địa chỉ: "+P.baddr:""}`],
     ["Căn cứ / Basis:",`${P.basis} — tính theo ${unit}`],
     ["Mốc khởi tính / Baseline date:",`${fmt(base)} – Ngày bản vẽ thi công được phê duyệt`]];
   r=3;
@@ -697,6 +836,12 @@ async function exportExcel(){
   S.conds.forEach((c,i)=>{M(r,1,r,LASTC);
     Object.assign(cell(r,1,`${i+1}. ${c}`),{font:F(10),alignment:{horizontal:"left",vertical:"top",wrapText:true}});
     ws.getRow(r).height=30;r++;});
+  if(S.obligs&&S.obligs.length){
+    M(r,1,r,LASTC);Object.assign(cell(r,1,"NGHĨA VỤ BÊN MUA ẢNH HƯỞNG TIẾN ĐỘ:"),{font:F(10,1)});r++;
+    S.obligs.forEach((c,i)=>{M(r,1,r,LASTC);
+      Object.assign(cell(r,1,`(${i+1}) ${c}`),{font:F(10),alignment:{horizontal:"left",vertical:"top",wrapText:true}});
+      ws.getRow(r).height=30;r++;});
+  }
   r++;
   M(r,1,r,LASTC);Object.assign(cell(r,1,`………………, ngày ……… tháng ……… năm ${base.getUTCFullYear()}`),{font:F(10),alignment:{horizontal:"right"}});r++;
   const act=S.signers.filter(s=>s.on&&s.t.trim());
