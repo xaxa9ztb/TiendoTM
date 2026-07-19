@@ -40,10 +40,14 @@ input[type=checkbox],input[type=radio]{width:auto}
 .stepper button.on{background:#fff;color:var(--navy)}
 .stepper button:disabled{opacity:.45;cursor:not-allowed}
 
-.modebar{max-width:1320px;margin:18px auto 0;padding:0 22px;display:flex;gap:10px}
-.modebar button{flex:1;background:#fff;border:1px solid var(--line);border-bottom:3px solid var(--line);color:var(--muted);padding:12px 16px;font-size:14px;font-weight:700;border-radius:6px 6px 0 0}
-.modebar button.on{color:var(--navy);border-color:var(--navy-2);border-bottom-color:var(--red);background:#fff}
-.wrap{max-width:1320px;margin:14px auto 80px;padding:0 22px}
+.wrap{max-width:1320px;margin:26px auto 80px;padding:0 22px}
+.choose{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:6px}
+@media(max-width:720px){.choose{grid-template-columns:1fr}}
+.choosecard{text-align:left;background:#fff;border:1px solid var(--line);border-radius:10px;padding:22px;cursor:pointer;transition:.15s}
+.choosecard:hover{border-color:var(--navy-2);box-shadow:0 6px 22px rgba(31,56,100,.12);transform:translateY(-2px)}
+.choosecard .ci{font-size:34px;line-height:1}
+.choosecard .ct{font-family:var(--disp);font-weight:800;font-size:17px;color:var(--navy);margin:10px 0 6px}
+.choosecard .cd{color:var(--muted);font-size:12.5px;line-height:1.5}
 .panel{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:26px 28px;margin-bottom:22px}
 .panel h2{font-family:var(--disp);font-stretch:85%;font-weight:800;font-size:19px;color:var(--navy);display:flex;align-items:center;gap:10px;margin-bottom:6px}
 .panel h2 .no{font-family:var(--mono);font-size:12px;font-weight:500;color:#fff;background:var(--red);border-radius:3px;padding:2px 7px}
@@ -140,31 +144,26 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font
 
 <div class="topbar">
   <div>
-    <div class="mark">LIFT<b>·</b>DOC BUILDER</div>
-    <div class="sub">tiến độ &amp; hồ sơ chất lượng thang máy · static app · runs 100% in your browser</div>
+    <div class="mark">QUẢN LÝ<b>·</b>DỰ ÁN</div>
+    <div class="sub">thang máy · tiến độ thi công &amp; hồ sơ chất lượng · static app · runs 100% in your browser</div>
   </div>
   <div class="stepper" id="stepper">
-    <button id="tab1" class="on" onclick="go(1)">1 · Nhập liệu</button>
+    <button id="tab1" class="on" onclick="go(1)">1 · Thiết lập tiến độ</button>
     <button id="tab2" onclick="go(2)">2 · Kiểm tra &amp; hiệu chỉnh</button>
     <button id="tab3" onclick="go(3)">3 · Preview &amp; Xuất file</button>
   </div>
 </div>
 
-<div class="modebar">
-  <button id="mode_sched" class="on" onclick="switchMode('schedule')">① Tiến độ thi công</button>
-  <button id="mode_qual" onclick="switchMode('quality')">② Hồ sơ quản lý chất lượng</button>
-</div>
-
 <div class="wrap">
 
-<!-- ================= STEP 1 ================= -->
-<section id="step1">
+<!-- ===== BƯỚC 1 (DÙNG CHUNG): NHẬP HỢP ĐỒNG ===== -->
+<section id="screenContract">
   <div class="panel">
-    <h2><span class="no">01</span>Hợp đồng (file scan PDF hoặc ảnh)</h2>
-    <p class="hint">Phần mềm quét file bằng OCR ngay trên máy của bạn (không upload lên server), tự nhận diện: thông tin dự án, khách hàng, thời gian thực hiện theo Điều khoản hợp đồng, các điều kiện thi công. Bạn có thể bỏ qua bước này và nhập tay toàn bộ.</p>
+    <h2><span class="no">01</span>Nhập hợp đồng &amp; quét thông tin (PDF hoặc ảnh)</h2>
+    <p class="hint">Phần mềm quét file bằng OCR ngay trên máy của bạn (không upload lên server), tự nhận diện: thông tin dự án, khách hàng, hợp đồng, thiết bị, thời gian thực hiện, điều kiện thi công. Dữ liệu này dùng cho cả hai chức năng. Có thể bỏ qua và nhập tay.</p>
     <div class="drop" id="drop">
       <div class="big">Kéo thả file hợp đồng vào đây</div>
-      <div class="small">hoặc bấm để chọn file · PDF / JPG / PNG · quét tối đa 15 trang đầu</div>
+      <div class="small">hoặc bấm để chọn file · PDF / JPG / PNG · quét tối đa 20 trang đầu</div>
       <input type="file" id="file" accept=".pdf,image/*">
     </div>
     <div class="bar" id="bar"><i id="barfill"></i></div>
@@ -174,7 +173,37 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font
       <span id="ocrstat" style="font-size:12.5px;color:var(--muted)"></span>
     </div>
   </div>
+  <div class="row" style="justify-content:flex-end">
+    <button class="btn pri" onclick="toChoose()">Tiếp tục → Chọn chức năng</button>
+  </div>
+</section>
 
+<!-- ===== BƯỚC 2 (DÙNG CHUNG): CHỌN CHỨC NĂNG ===== -->
+<section id="screenChoose" class="hide">
+  <div class="panel">
+    <h2><span class="no">02</span>Chọn chức năng</h2>
+    <p class="hint">Dữ liệu quét từ hợp đồng được dùng cho cả hai chức năng. Chọn việc cần làm:</p>
+    <div class="choose">
+      <button class="choosecard" onclick="chooseFn('schedule')">
+        <div class="ci">📋</div>
+        <div class="ct">Lập bảng tiến độ thi công</div>
+        <div class="cd">Bảng Gantt theo tuần (SX–lắp đặt–bàn giao), ngày nghỉ lễ VN, xuất Excel/PDF khổ A3 ngang.</div>
+      </button>
+      <button class="choosecard" onclick="chooseFn('quality')">
+        <div class="ci">📑</div>
+        <div class="ct">Hồ sơ quản lý chất lượng</div>
+        <div class="cd">Phiếu yêu cầu, biên bản nghiệm thu &amp; bàn giao thang máy; hỗ trợ thang PCCC / thường và nhiều thang (.xlsx).</div>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ===== CHỨC NĂNG: TIẾN ĐỘ ===== -->
+<section id="screenSchedule" class="hide">
+<div class="row" style="margin-bottom:12px"><button class="btn gho sm" onclick="toChoose()">← Chọn chức năng khác</button></div>
+
+<!-- ================= STEP 1 ================= -->
+<section id="step1">
   <div class="panel">
     <h2><span class="no">02</span>Mốc tiến độ &amp; cách tính ngày</h2>
     <div class="grid g3">
@@ -303,14 +332,17 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font
   </div>
   <div class="sheetbox"><div class="sheet" id="sheet"></div></div>
 </section>
+</section>
+<!-- /screenSchedule -->
 
-<!-- ================= HỒ SƠ CHẤT LƯỢNG ================= -->
+<!-- ===== CHỨC NĂNG: HỒ SƠ CHẤT LƯỢNG ===== -->
 <section id="quality" class="hide">
+  <div class="row" style="margin-bottom:12px"><button class="btn gho sm" onclick="toChoose()">← Chọn chức năng khác</button></div>
   <div class="panel">
     <h2><span class="no">Q</span>Hồ sơ quản lý chất lượng (nghiệm thu &amp; bàn giao thang máy)</h2>
-    <p class="hint">Nhập dữ liệu ô bên dưới (hoặc lấy từ scan hợp đồng ở tab Tiến độ) → xuất bộ hồ sơ Excel gồm: 6 Phiếu yêu cầu + 6 Biên bản nghiệm thu (lắp đặt tĩnh, đơn/liên động không &amp; có tải, hoàn thành hạng mục) + Biên bản bàn giao. Toàn bộ biểu mẫu tự điền theo dữ liệu.</p>
+    <p class="hint">Dữ liệu đã quét từ hợp đồng có thể lấy nhanh bằng nút bên dưới. Xuất bộ hồ sơ Excel gồm: 6 Phiếu yêu cầu + 6 Biên bản nghiệm thu (lắp đặt tĩnh, đơn/liên động không &amp; có tải, hoàn thành hạng mục) + Biên bản bàn giao. Toàn bộ biểu mẫu tự điền theo dữ liệu.</p>
     <div class="row" style="margin-bottom:8px">
-      <button class="btn gho sm" onclick="prefillQuality()">⟵ Lấy dữ liệu từ scan hợp đồng (tab Tiến độ)</button>
+      <button class="btn gho sm" onclick="prefillQuality()">⟳ Lấy lại dữ liệu từ scan hợp đồng</button>
     </div>
   </div>
 
@@ -697,7 +729,7 @@ drop.ondragover=e=>{e.preventDefault();drop.classList.add("over");};
 drop.ondragleave=()=>drop.classList.remove("over");
 drop.ondrop=e=>{e.preventDefault();drop.classList.remove("over");if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0]);};
 file.onchange=()=>{if(file.files[0])handleFile(file.files[0]);};
-function skipOCR(){document.getElementById("ocrstat").textContent="Đã bỏ qua OCR — nhập dữ liệu tay ở bước 2.";document.getElementById("ocrnote").classList.add("hide");}
+function skipOCR(){document.getElementById("ocrstat").textContent="Đã bỏ qua OCR — nhập dữ liệu tay.";const n=document.getElementById("ocrnote");if(n)n.classList.add("hide");showScreen("screenChoose");}
 
 async function handleFile(f){
   logEl.textContent="";log("▸ Đang đọc file: "+f.name);
@@ -743,11 +775,11 @@ async function handleFile(f){
     prog(1);
     log("▸ OCR hoàn tất. Đang trích xuất dữ liệu…");
     const hits=extract(fullText);
-    document.getElementById("ocrstat").textContent=`✓ Đã quét xong — nhận diện ${hits} nhóm thông tin. Sang bước 2 để kiểm tra & hiệu chỉnh.`;
-    go(2);
+    document.getElementById("ocrstat").textContent=`✓ Đã quét xong — nhận diện ${hits} nhóm thông tin. Chọn chức năng để tiếp tục.`;
+    showScreen("screenChoose");
   }catch(err){
     log("✗ Lỗi: "+err.message);
-    document.getElementById("ocrstat").textContent="Không xử lý được file — bạn có thể nhập tay ở bước 2.";
+    document.getElementById("ocrstat").textContent="Không xử lý được file — bạn có thể bỏ qua và nhập tay.";
   }
 }
 
@@ -1250,15 +1282,16 @@ async function exportQuality(){
     st.textContent="✓ Đã xuất bộ hồ sơ chất lượng. Mở bằng Excel (biểu mẫu tự tính lại theo dữ liệu).";
   }catch(e){st.textContent="Lỗi: "+e.message+". Lưu ý: chức năng này cần mở app qua GitHub Pages (không chạy khi mở file cục bộ).";}
 }
-function switchMode(m){
-  const qual=m==="quality";
-  document.getElementById("quality").classList.toggle("hide",!qual);
-  document.getElementById("stepper").style.visibility=qual?"hidden":"visible";
-  if(qual){["step1","step2","step3"].forEach(id=>document.getElementById(id).classList.add("hide"));}
-  else{go(1);}
-  document.getElementById("mode_sched").classList.toggle("on",!qual);
-  document.getElementById("mode_qual").classList.toggle("on",qual);
+/* điều hướng cấp cao: hợp đồng → chọn chức năng → (tiến độ | hồ sơ chất lượng) */
+function showScreen(name){
+  ["screenContract","screenChoose","screenSchedule","quality"].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.toggle("hide",id!==name);});
+  const sp=document.getElementById("stepper");if(sp)sp.style.visibility=name==="screenSchedule"?"visible":"hidden";
   window.scrollTo({top:0,behavior:"smooth"});
+}
+function toChoose(){showScreen("screenChoose");}
+function chooseFn(fn){
+  if(fn==="schedule"){showScreen("screenSchedule");go(1);}
+  else{showScreen("quality");prefillQuality();}
 }
 
 /* ================================================================
@@ -1287,6 +1320,7 @@ document.getElementById("holidays").oninput=function(){document.getElementById("
 
 autoFillHolidays(true); // tự liệt kê ngày nghỉ lễ VN ngay khi mở
 renderSigners();renderSteps();renderFactors();renderQElevs();pushForm();showLogo();
+showScreen("screenContract"); // bắt đầu ở bước nhập hợp đồng
 </script>
 </body>
 </html>
