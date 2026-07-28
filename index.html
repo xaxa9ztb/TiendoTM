@@ -279,7 +279,7 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font
     </div>
     <div class="grid g3" style="margin-bottom:18px">
       <div class="f"><label>I · Sản xuất &amp; vận chuyển (ngày) <span class="det hide" id="d_prod">●OCR</span></label><input type="number" id="ph_prod" value="70" min="0"></div>
-      <div class="f"><label>II · Lắp đặt (tự tính từ các bước) <span class="det hide" id="d_inst">●OCR</span></label><input type="number" id="ph_inst" value="35" disabled style="background:#f3f5f8"></div>
+      <div class="f"><label>II · Lắp đặt (tổng — sửa sẽ giãn đều các bước) <span class="det hide" id="d_inst">●OCR</span></label><input type="number" id="ph_inst" value="35" min="1"></div>
       <div class="f"><label>III · Bàn giao đưa vào sử dụng (ngày) <span class="det hide" id="d_hand">●OCR</span></label><input type="number" id="ph_hand" value="5" min="0"></div>
     </div>
     <h2 style="font-size:15px"><span class="no" style="background:var(--navy)">I</span>Yếu tố ảnh hưởng tiến độ hàng về (cộng vào giai đoạn I)</h2>
@@ -1300,6 +1300,8 @@ function chooseFn(fn){
 document.querySelectorAll("input[name=daymode]").forEach(x=>x.onchange=syncInst);
 document.getElementById("ph_prod").onchange=syncInst;
 document.getElementById("ph_hand").onchange=syncInst;
+// sửa tổng "Lắp đặt" → giãn đều 14 bước theo tỷ lệ để khớp
+document.getElementById("ph_inst").onchange=function(){const t=Math.max(1,+this.value||0);scaleSteps(t);renderSteps();};
 
 /* logo Bên Bán */
 function showLogo(){
