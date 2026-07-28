@@ -282,10 +282,10 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font
       <div class="f"><label>II · Lắp đặt (tổng — sửa sẽ giãn đều các bước) <span class="det hide" id="d_inst">●OCR</span></label><input type="number" id="ph_inst" value="35" min="1"></div>
       <div class="f"><label>III · Bàn giao đưa vào sử dụng (ngày) <span class="det hide" id="d_hand">●OCR</span></label><input type="number" id="ph_hand" value="5" min="0"></div>
     </div>
-    <h2 style="font-size:15px"><span class="no" style="background:var(--navy)">I</span>Yếu tố ảnh hưởng tiến độ hàng về (cộng vào giai đoạn I)</h2>
-    <p class="hint">Ví dụ: phê duyệt nội thất/cabin, khách hàng yêu cầu giãn tiến độ hàng về… Mỗi dòng cộng thêm số ngày vào thời gian sản xuất &amp; vận chuyển thiết bị.</p>
+    <h2 style="font-size:15px"><span class="no" style="background:var(--navy)">I</span>Yếu tố ảnh hưởng tiến độ hàng về (thuộc giai đoạn I)</h2>
+    <p class="hint">Ví dụ: phê duyệt nội thất/cabin, khách hàng yêu cầu giãn tiến độ hàng về… Mỗi yếu tố chọn <b>Số ngày</b> (cộng thêm ngày) hoặc <b>Mốc ngày</b> (chờ đến ngày đó), và đặt <b>trước</b> hay <b>sau</b> bước sản xuất.</p>
     <table class="edit" style="margin-top:8px">
-      <thead><tr><th style="width:34px">#</th><th>Yếu tố ảnh hưởng</th><th style="width:80px">Số ngày</th><th style="width:36px"></th></tr></thead>
+      <thead><tr><th style="width:30px">#</th><th>Yếu tố ảnh hưởng</th><th style="width:96px">Loại</th><th style="width:132px">Giá trị</th><th style="width:118px">Vị trí</th><th style="width:32px"></th></tr></thead>
       <tbody id="factorsbody"></tbody>
     </table>
     <div class="row" style="margin-top:10px">
@@ -586,6 +586,31 @@ function taskEnd(start,n,mode,H){
   while(c<n){d=nextDay(d);if(isWork(d,H))c++;}
   return d;
 }
+// đếm số ngày (làm việc/lịch) trong khoảng [a,b] bao gồm 2 đầu
+function countDays(a,b,mode,H){
+  if(b<=a)return mode==="cal"?1:(isWork(a,H)?1:0);
+  let c=0,d=new Date(a.getTime());
+  while(d<=b){if(mode==="cal"||isWork(d,H))c++;d=nextDay(d);}
+  return c;
+}
+// Giai đoạn I: yếu tố "Trước SX" → Sản xuất → yếu tố "Sau SX"; mỗi yếu tố là Số ngày hoặc Mốc ngày
+function computePhaseI(base,mode,H,prod){
+  const before=S.factors.filter(f=>(f.pos||"after")==="before");
+  const after=S.factors.filter(f=>(f.pos||"after")!=="before");
+  const list=[];
+  before.forEach(f=>list.push({name:f.name||"(yếu tố ảnh hưởng)",mode:f.mode||"days",days:+f.days||0,date:f.date}));
+  list.push({name:"Sản xuất & vận chuyển thiết bị",mode:"days",days:prod});
+  after.forEach(f=>list.push({name:f.name||"(yếu tố ảnh hưởng)",mode:f.mode||"days",days:+f.days||0,date:f.date}));
+  const subs=[];let prev=null,total=0,start=null;
+  list.forEach((a,i)=>{
+    const s=i===0?nextStart(base,mode,H):nextStart(prev,mode,H);
+    let e,days;
+    if(a.mode==="date"&&a.date){e=pd(a.date);if(e<s)e=new Date(s.getTime());days=countDays(s,e,mode,H);}
+    else{days=a.days;e=taskEnd(s,days,mode,H);}
+    subs.push({name:a.name,days,s,e});total+=days;prev=e;if(!start)start=s;
+  });
+  return {subs,total,start:start||nextStart(base,mode,H),end:prev||taskEnd(nextStart(base,mode,H),prod,mode,H)};
+}
 function computeSchedule(){
   const mode=document.querySelector("input[name=daymode]:checked").value;
   const H=holSet();
@@ -594,21 +619,14 @@ function computeSchedule(){
   const hand=+document.getElementById("ph_hand").value||0;
   const rows=[];
   rows.push({id:"0",name:"XÁC NHẬN BẢN VẼ THI CÔNG – MỐC KHỞI TÍNH TIẾN ĐỘ",days:"–",s:base,e:base,ph:"M",sec:true});
-  const fsum=S.factors.reduce((a,b)=>a+(+b.days||0),0);
-  const prodTotal=prod+fsum;
-  let pS=nextStart(base,mode,H),pE=taskEnd(pS,prodTotal,mode,H);
-  rows.push({id:"I",name:"SẢN XUẤT VÀ VẬN CHUYỂN THIẾT BỊ ĐẾN CÔNG TRÌNH",days:prodTotal,s:pS,e:pE,ph:"P",sec:true});
-  if(S.factors.length){ // chi tiết giai đoạn I: sản xuất gốc + các yếu tố ảnh hưởng hàng về
-    const subs=[{name:"Sản xuất & vận chuyển thiết bị",days:prod},...S.factors.map(f=>({name:f.name||"(yếu tố ảnh hưởng)",days:+f.days||0}))];
-    let c=pS;
-    subs.forEach((sf,k)=>{
-      const s=k===0?pS:nextStart(c,mode,H),e=taskEnd(s,sf.days,mode,H);
-      rows.push({id:"I."+(k+1),name:sf.name,days:sf.days,s,e,ph:"P",sec:false});
-      c=e;
-    });
+  const pI=computePhaseI(base,mode,H,prod);
+  const prodTotal=pI.total;
+  rows.push({id:"I",name:"SẢN XUẤT VÀ VẬN CHUYỂN THIẾT BỊ ĐẾN CÔNG TRÌNH",days:prodTotal,s:pI.start,e:pI.end,ph:"P",sec:true});
+  if(S.factors.length){ // chi tiết giai đoạn I: yếu tố trước SX + sản xuất gốc + yếu tố sau SX
+    pI.subs.forEach((sf,k)=>rows.push({id:"I."+(k+1),name:sf.name,days:sf.days,s:sf.s,e:sf.e,ph:"P",sec:false}));
   }
   const instDays=S.steps.reduce((a,b)=>a+(+b.days||0),0);
-  let iS=nextStart(pE,mode,H),iE=taskEnd(iS,instDays,mode,H);
+  let iS=nextStart(pI.end,mode,H),iE=taskEnd(iS,instDays,mode,H);
   rows.push({id:"II",name:"LẮP ĐẶT THIẾT BỊ",days:instDays,s:iS,e:iE,ph:"I",sec:true});
   let cur=iS;
   S.steps.forEach((st,k)=>{
@@ -649,25 +667,34 @@ function syncInst(){
   const t=S.steps.reduce((a,b)=>a+(+b.days||0),0);
   document.getElementById("instsum").textContent=t;
   document.getElementById("ph_inst").value=t;
-  const fsum=S.factors.reduce((a,b)=>a+(+b.days||0),0);
-  const fel=document.getElementById("factorsum");if(fel)fel.textContent=fsum;
   const p=+document.getElementById("ph_prod").value||0,h=+document.getElementById("ph_hand").value||0;
-  document.getElementById("totpill").textContent=`Tổng: ${p+fsum+t+h} ngày ${document.querySelector("input[name=daymode]:checked").value==="work"?"làm việc":"lịch"}`;
+  const mode=document.querySelector("input[name=daymode]:checked").value;
+  // tổng ảnh hưởng hàng về = tổng giai đoạn I − sản xuất gốc (tính cả yếu tố dạng mốc ngày)
+  let fsum=0;const bl=document.getElementById("baseline").value;
+  try{if(bl)fsum=computePhaseI(pd(bl),mode,holSet(),p).total-p;}catch(e){fsum=S.factors.reduce((a,b)=>a+(+b.days||0),0);}
+  const fel=document.getElementById("factorsum");if(fel)fel.textContent=fsum;
+  document.getElementById("totpill").textContent=`Tổng: ${p+fsum+t+h} ngày ${mode==="work"?"làm việc":"lịch"}`;
 }
 function addStep(){S.steps.push({name:"",days:1});renderSteps();}
 function renderFactors(){
   const tb=document.getElementById("factorsbody");if(!tb)return;tb.innerHTML="";
   S.factors.forEach((ft,i)=>{
+    const mode=ft.mode||"days",pos=ft.pos||"after";
+    const valCell=mode==="date"
+      ? `<input type="date" value="${esc(ft.date||"")}" onchange="S.factors[${i}].date=this.value;syncInst()">`
+      : `<input type="number" min="0" value="${ft.days}" onchange="S.factors[${i}].days=+this.value;syncInst()">`;
     const tr=document.createElement("tr");
     tr.innerHTML=`<td class="n">${i+1}</td>
       <td><input value="${esc(ft.name)}" placeholder="VD: Phê duyệt nội thất/cabin · KH giãn tiến độ hàng về" onchange="S.factors[${i}].name=this.value"></td>
-      <td class="d"><input type="number" min="0" value="${ft.days}" onchange="S.factors[${i}].days=+this.value;syncInst()"></td>
+      <td><select onchange="S.factors[${i}].mode=this.value;renderFactors()"><option value="days"${mode==="days"?" selected":""}>Số ngày</option><option value="date"${mode==="date"?" selected":""}>Mốc ngày</option></select></td>
+      <td class="d">${valCell}</td>
+      <td><select onchange="S.factors[${i}].pos=this.value;syncInst()"><option value="before"${pos==="before"?" selected":""}>Trước SX</option><option value="after"${pos==="after"?" selected":""}>Sau SX</option></select></td>
       <td class="x"><button class="icb" title="Xóa" onclick="S.factors.splice(${i},1);renderFactors()">✕</button></td>`;
     tb.appendChild(tr);
   });
   syncInst();
 }
-function addFactor(){S.factors.push({name:"",days:5});renderFactors();}
+function addFactor(){S.factors.push({name:"",mode:"days",days:5,date:"",pos:"after"});renderFactors();}
 function renderSigners(){
   const box=document.getElementById("signers");box.innerHTML="";
   S.signers.forEach((sg,i)=>{
