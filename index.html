@@ -426,6 +426,21 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font
   </div>
 
   <div class="panel">
+    <h2 style="font-size:16px"><span class="no" style="background:var(--navy)">E</span>Thành phần ký bổ sung (ngoài Bên A, Bên B)</h2>
+    <p class="hint">Ví dụ: Tư vấn giám sát, Ban quản lý dự án, Chủ đầu tư… Khi thêm, khối chữ ký của các thành phần này sẽ được thêm vào cuối mỗi Phiếu yêu cầu &amp; Biên bản nghiệm thu và Biên bản bàn giao.</p>
+    <table class="edit" style="margin-top:8px">
+      <thead><tr><th style="width:30px">#</th><th>Thành phần (chức danh)</th><th>Đại diện (họ tên) — có thể để trống</th><th style="width:32px"></th></tr></thead>
+      <tbody id="qsignersbody"></tbody>
+    </table>
+    <div class="row" style="margin-top:10px">
+      <button class="btn gho sm" onclick="addQSigner()">+ Thêm thành phần ký</button>
+      <button class="btn gho sm" onclick="addQSigner('Tư vấn giám sát')">+ TVGS</button>
+      <button class="btn gho sm" onclick="addQSigner('Ban quản lý dự án')">+ Ban QLDA</button>
+      <button class="btn gho sm" onclick="addQSigner('Chủ đầu tư')">+ Chủ đầu tư</button>
+    </div>
+  </div>
+
+  <div class="panel">
     <div class="row" style="justify-content:flex-end;gap:12px">
       <span id="q_status" style="font-size:12.5px;color:var(--muted);margin-right:auto"></span>
       <button class="btn pri" onclick="exportQuality()">⬇ Xuất bộ hồ sơ chất lượng (.xlsx)</button>
@@ -477,6 +492,7 @@ const S = {
   obligs:[],
   factors:[],
   qElevs:["P1"],
+  qSigners:[],
   logo:DEFAULT_LOGO,
 };
 
@@ -1228,6 +1244,18 @@ function renderQElevs(){
 }
 function addQElev(){S.qElevs.push("");renderQElevs();}
 function updateQCount(){const n=S.qElevs.filter(x=>x&&x.trim()).length;const el=document.getElementById("qelevcount");if(el)el.textContent=n;}
+function renderQSigners(){
+  const tb=document.getElementById("qsignersbody");if(!tb)return;tb.innerHTML="";
+  S.qSigners.forEach((sg,i)=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td class="n">${i+1}</td>
+      <td><input value="${esc(sg.role||"")}" placeholder="VD: Tư vấn giám sát · Ban QLDA · Chủ đầu tư" onchange="S.qSigners[${i}].role=this.value"></td>
+      <td><input value="${esc(sg.name||"")}" placeholder="Họ tên người ký (tuỳ chọn)" onchange="S.qSigners[${i}].name=this.value"></td>
+      <td class="x"><button class="icb" title="Xóa" onclick="S.qSigners.splice(${i},1);renderQSigners()">✕</button></td>`;
+    tb.appendChild(tr);
+  });
+}
+function addQSigner(role){S.qSigners.push({role:role||"",name:""});renderQSigners();}
 function prefillQuality(){
   const P=S.project,set=(id,v)=>{if(v)document.getElementById(id).value=v;};
   set("q_duan",P.name);set("q_diadiem",P.addr);
@@ -1304,6 +1332,29 @@ function _stripPCCC(wb){
       .replace(/\/PCCC/g,"").replace(/[,;]\s*[^,.;\n]*\bPCCC\b[^,.;\n]*/gi,"").replace(/,\s*PCCC/g,"").replace(/\s*\(?PCCC\)?/g,m=>/\(/.test(m)?"":m).replace(/\s+([.,;])/g,"$1").replace(/  +/g," ").trim())));
   });
 }
+// thêm khối chữ ký cho các thành phần bổ sung vào cuối mỗi phiếu/biên bản (thêm ở cuối → không lệch merge)
+function _lastSigRow(ws){let last=0;ws.eachRow((row,r)=>{const a=_aStr(ws,r,1),f=_aStr(ws,r,6);if(/ĐẠI DIỆN|On behalf/i.test(a+f))last=r;});return last;}
+function _sigBlock(ws,row,c1,c2,s){
+  ws.mergeCells(row,c1,row,c2);const cell=ws.getCell(row,c1);
+  cell.value=(s.role||"").toUpperCase()+"\n"+(s.name||"…...........................")+"\n(Ký, ghi rõ họ tên)";
+  cell.font={name:"Times New Roman",size:12,bold:true};cell.alignment={horizontal:"center",vertical:"top",wrapText:true};
+}
+function _addSigners(wb,signers){
+  signers=(signers||[]).filter(s=>s&&(s.role||"").trim());
+  if(!signers.length)return;
+  ["PYC1_LapDatTinh","PYC2_DonDongKhongTai","PYC3_DonDongCoTai","PYC4_LienDongKhongTai","PYC5_LienDongCoTai","PYC6_HoanThanhHangMuc",
+   "BB1_LapDatTinh","BB2_DonDongKhongTai","BB3_DonDongCoTai","BB4_LienDongKhongTai","BB5_LienDongCoTai","BB6_HoanThanhHangMuc","BBG_BanGiao"].forEach(n=>{
+    const ws=wb.getWorksheet(n);if(!ws)return;
+    let r=_lastSigRow(ws)||ws.rowCount;r+=2;
+    ws.mergeCells(r,1,r,10);const h=ws.getCell(r,1);h.value="XÁC NHẬN CỦA CÁC THÀNH PHẦN KHÁC";h.font={name:"Times New Roman",size:12,bold:true,italic:true};h.alignment={horizontal:"center"};
+    r+=1;
+    for(let i=0;i<signers.length;i+=2){
+      _sigBlock(ws,r,1,5,signers[i]);
+      if(signers[i+1])_sigBlock(ws,r,6,10,signers[i+1]);
+      ws.getRow(r).height=80;r+=1;
+    }
+  });
+}
 async function exportQuality(){
   const st=document.getElementById("q_status");st.textContent="Đang tạo hồ sơ…";
   try{
@@ -1314,6 +1365,7 @@ async function exportQuality(){
     const wb=new ExcelJS.Workbook();await wb.xlsx.load(buf);
     _fillData(wb);_applyElev(wb);
     if(document.querySelector("input[name=qtype]:checked").value==="pass")_stripPCCC(wb);
+    _addSigners(wb,S.qSigners);
     wb.calcProperties={fullCalcOnLoad:true};
     const out=await wb.xlsx.writeBuffer();
     const mada=(qv("q_mada")||"thang_may").replace(/[^\w-]/g,"_");
@@ -1360,7 +1412,7 @@ document.getElementById("baseline2").onchange=function(){document.getElementById
 document.getElementById("holidays").oninput=function(){document.getElementById("holidays2").value=this.value;};
 
 autoFillHolidays(true); // tự liệt kê ngày nghỉ lễ VN ngay khi mở
-renderSigners();renderSteps();renderFactors();renderQElevs();pushForm();showLogo();
+renderSigners();renderSteps();renderFactors();renderQElevs();renderQSigners();pushForm();showLogo();
 showScreen("screenContract"); // bắt đầu ở bước nhập hợp đồng
 </script>
 </body>
