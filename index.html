@@ -9,6 +9,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 <style>
 :root{
@@ -1273,104 +1274,161 @@ function prefillQuality(){
   if(qty&&+qty[1]>=1&&S.qElevs.filter(x=>x&&x.trim()).length<=1){S.qElevs=Array.from({length:+qty[1]},(_,i)=>"P"+(i+1));renderQElevs();}
   document.getElementById("q_status").textContent="Đã lấy dữ liệu từ scan hợp đồng — kiểm tra & bổ sung các ô còn trống.";
 }
-/* --- biến đổi workbook mẫu --- */
-function _repl(cell,fn){if(cell.isMerged&&cell.master&&cell.master.address!==cell.address)return;const v=cell.value;if(typeof v==="string"){const nv=fn(v);if(nv!==v)cell.value=nv;}}
-function _fillData(wb){
-  const s=wb.getWorksheet("DATA");if(!s)return;const set=(a,v)=>{if(v)s.getCell(a).value=v;};
-  set("C5",qv("q_duan"));set("C6",qv("q_goithau"));set("C7",qv("q_hangmuc"));set("C8",qv("q_diadiem"));set("C9",qv("q_mada"));
-  set("C11",qv("q_sohd"));set("C12",qv("q_ngayhd"));set("C13",qv("q_sopl"));set("C14",qv("q_ngaypl"));set("C15",qv("q_ngaybbvt"));
-  set("C17",qv("q_a_ten"));set("C18",qv("q_a_diachi"));set("C19",qv("q_a_pl"));set("C20",qv("q_a_pl_cv"));
-  set("C21",qv("q_a_nt1"));set("C22",qv("q_a_nt1_cv"));set("C23",qv("q_a_nt2"));set("C24",qv("q_a_nt2_cv"));
-  set("C26",qv("q_b_ten"));set("C27",qv("q_b_diachi"));set("C28",qv("q_b_pl"));set("C29",qv("q_b_pl_cv"));
-  set("C30",qv("q_b_nt1"));set("C31",qv("q_b_nt1_cv"));set("C32",qv("q_b_nt2"));set("C33",qv("q_b_nt2_cv"));
-  set("C35",qv("q_nhasx"));set("C36",qv("q_cocq"));
+/* ================================================================
+   XUẤT HỒ SƠ — "phẫu thuật" ZIP trực tiếp trên file mẫu (JSZip):
+   chỉ sửa đúng các đoạn XML cần thiết, mọi part khác giữ NGUYÊN BYTE
+   so với template → tránh mọi rủi ro khi thư viện ghi lại toàn bộ file.
+================================================================ */
+function xescQ(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function xunescQ(s){return s.replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,"&");}
+// áp hàm biến đổi lên nội dung text của <t> (chuỗi) và <f> (công thức)
+function zRuns(xml,fn){
+  xml=xml.replace(/(<t(?:\s[^>]*)?>)([\s\S]*?)(<\/t>)/g,(m,a,b,c)=>{const nv=fn(xunescQ(b));return nv===b?m:a+xescQ(nv)+c;});
+  xml=xml.replace(/(<f(?:\s[^>]*)?>)([\s\S]*?)(<\/f>)/g,(m,a,b,c)=>{const nv=fn(xunescQ(b));return nv===b?m:a+xescQ(nv)+c;});
+  return xml;
 }
-function _applyElev(wb){
-  const names=S.qElevs.map(x=>(x||"").trim()).filter(Boolean);
-  const nStr=names.join(", ")||"P3";const qty=names.length||1;const qty2=String(qty).padStart(2,"0");
-  const type=document.querySelector("input[name=qtype]:checked").value;
-  const room=document.querySelector("input[name=qroom]:checked").value==="khong"?"không phòng máy":"có phòng máy";
-  const kind="chở khách"+(type==="pccc"?"/PCCC ":" ")+room;
-  wb.eachSheet(ws=>ws.eachRow(row=>row.eachCell(cell=>_repl(cell,v=>{
-    let s=v;
-    s=s.replace(/thang máy chở người\/PCCC có phòng máy/gi,"thang máy "+kind).replace(/Thang máy chở khách, PCCC, có Phòng máy/gi,"Thang máy "+kind);
-    s=s.replace(/\bThang máy P3\b/g,"Thang máy "+nStr).replace(/\bthang máy P3\b/g,"thang máy "+nStr)
-       .replace(/\bthang P3\b/g,"thang "+nStr).replace(/\bTHANG MÁY P3\b/g,"THANG MÁY "+nStr.toUpperCase())
-       .replace(/\bsố P3\b/g,"số "+nStr).replace(/\bNo\. P3\b/g,"No. "+nStr).replace(/\bP3 -/g,nStr+" -").replace(/\bdừng tầng P3\b/g,"dừng tầng "+nStr);
-    return s;
-  }))));
-  const bbg=wb.getWorksheet("BBG_BanGiao");
-  if(bbg){bbg.getCell("A22").value="Số lượng: "+qty2;bbg.getCell("A23").value="Quantity: "+qty2;
-    const m=qv("q_model"),st=qv("q_stops"),sp=qv("q_speed"),ld=qv("q_load");
-    if(m)bbg.getCell("H26").value=m;if(st)bbg.getCell("H27").value=st;if(sp)bbg.getCell("H28").value=sp;if(ld)bbg.getCell("H29").value=ld;}
-  ["PYC1_LapDatTinh","PYC2_DonDongKhongTai","PYC3_DonDongCoTai","PYC4_LienDongKhongTai","PYC5_LienDongCoTai","PYC6_HoanThanhHangMuc"].forEach(n=>{const w=wb.getWorksheet(n);if(w)w.getCell("D20").value=qty;});
+// điền giá trị vào ô trống (dạng <c r="C5" s="14" .../>) hoặc thay ô inlineStr sẵn có
+function zSetCell(xml,addr,val){
+  if(val==null||val==="")return xml;
+  const self=new RegExp('<c r="'+addr+'"([^>]*?)\\s*/>');
+  if(self.test(xml))return xml.replace(self,(m,attrs)=>'<c r="'+addr+'"'+attrs.replace(/\s*t="[^"]*"/,'')+' t="inlineStr"><is><t>'+xescQ(val)+'</t></is></c>');
+  const full=new RegExp('(<c r="'+addr+'"[^>]*t="inlineStr"[^>]*><is><t(?:\\s[^>]*)?>)[\\s\\S]*?(</t></is></c>)');
+  if(full.test(xml))return xml.replace(full,'$1'+xescQ(val)+'$2');
+  return xml;
 }
-// Bỏ nội dung PCCC bằng cách ẨN DÒNG (giữ nguyên merge/định dạng, dòng ẩn không in ra)
-function _aStr(ws,r,c){const v=ws.getRow(r).getCell(c).value;return v==null?"":(typeof v==="object"?(v.result||v.formula||""):v).toString();}
-function _isSectionOrEnd(ws,r){const a=_aStr(ws,r,1).trim();return /^[A-Z]\.\s/.test(a)||/^(Ghi chú đánh giá|Người kiểm tra)/i.test(a)||/ĐẠI DIỆN/i.test(a);}
-function _stripPCCC(wb){
-  wb.eachSheet(ws=>{
-    const rows=ws.rowCount;let i=1;
-    while(i<=rows){
-      const a=_aStr(ws,i,1).trim();
-      // header một mục có chữ PCCC (VD "E. HỆ THỐNG PCCC", "J. YÊU CẦU RIÊNG THANG PCCC") → ẩn cả mục
-      if(/^[A-Z]\.\s/.test(a) && /PCCC|ch[ữu]a\s*ch[áa]y/i.test(a)){
-        ws.getRow(i).hidden=true;let j=i+1;
-        while(j<=rows && !_isSectionOrEnd(ws,j)){ws.getRow(j).hidden=true;j++;}
-        i=j;continue;
-      }
-      // dòng check-list lẻ có PCCC/cứu hỏa/Phase ở cột nội dung
-      const b=_aStr(ws,i,2),stt=a;
-      if(/PCCC|c[ứu]u\s*h[ỏo]a|c[ứu]u\s*ho[ảa]|b[áa]o\s*ch[áa]y|Phase\s*[12]|fire/i.test(b) && stt.length>0 && stt.length<=6)ws.getRow(i).hidden=true;
-      i++;
+// đọc thông tin từng dòng: số dòng + text cột A, cột B (từ <t> hoặc <f>)
+function zRowInfos(xml){
+  const infos=[];const re=/<row\b[^>]*\br="(\d+)"[^>]*(?:\/>|>([\s\S]*?)<\/row>)/g;let m;
+  while((m=re.exec(xml))){
+    const r=+m[1],inner=m[2]||"";
+    const pick=col=>{
+      const cm=inner.match(new RegExp('<c r="'+col+r+'"[^>]*(?:/>|>([\\s\\S]*?)</c>)'));
+      if(!cm||!cm[1])return "";
+      let t="";cm[1].replace(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g,(x,y)=>{t+=y;return x;});
+      if(!t)cm[1].replace(/<f(?:\s[^>]*)?>([\s\S]*?)<\/f>/g,(x,y)=>{t+=y;return x;});
+      return xunescQ(t);
+    };
+    infos.push({r,a:pick('A').trim(),b:pick('B').trim()});
+  }
+  return infos;
+}
+// quyết định các dòng PCCC cần ẩn (cùng thuật toán bản trước)
+function zPcccRows(infos){
+  const hide=new Set();let i=0;
+  const isEnd=x=>/^[A-Z]\.\s/.test(x.a)||/^(Ghi chú đánh giá|Người kiểm tra)/i.test(x.a)||/ĐẠI DIỆN/i.test(x.a);
+  while(i<infos.length){
+    const x=infos[i];
+    if(/^[A-Z]\.\s/.test(x.a)&&/PCCC|ch[ữu]a\s*ch[áa]y/i.test(x.a)){
+      hide.add(x.r);let j=i+1;
+      while(j<infos.length&&!isEnd(infos[j])){hide.add(infos[j].r);j++;}
+      i=j;continue;
     }
-    // dọn cụm PCCC trong câu văn còn lại (chỉ ô chuỗi, không đụng công thức/merge phụ)
-    ws.eachRow(row=>row.eachCell(cell=>_repl(cell,v=>v
-      .replace(/,?\s*chế độ PCCC[^.\n;]*/gi,"").replace(/;?\s*thử PCCC[^.\n;]*/gi,"")
-      .replace(/,?\s*(?:duy trì )?tính năng PCCC[^.\n;]*/gi,"").replace(/tín hiệu PCCC\/BMS/gi,"tín hiệu BMS")
-      .replace(/PCCC\/BMS\/FAS/gi,"BMS/FAS").replace(/,?\s*phản hồi đúng tín hiệu PCCC[^.\n;]*/gi,"")
-      .replace(/\/PCCC/g,"").replace(/[,;]\s*[^,.;\n]*\bPCCC\b[^,.;\n]*/gi,"").replace(/,\s*PCCC/g,"").replace(/\s*\(?PCCC\)?/g,m=>/\(/.test(m)?"":m).replace(/\s+([.,;])/g,"$1").replace(/  +/g," ").trim())));
-  });
+    if(/PCCC|c[ứu]u\s*h[ỏo]a|c[ứu]u\s*ho[ảa]|b[áa]o\s*ch[áa]y|Phase\s*[12]|fire/i.test(x.b)&&x.a.length>0&&x.a.length<=6)hide.add(x.r);
+    i++;
+  }
+  return hide;
 }
-// thêm khối chữ ký cho các thành phần bổ sung vào cuối mỗi phiếu/biên bản (thêm ở cuối → không lệch merge)
-function _lastSigRow(ws){let last=0;ws.eachRow((row,r)=>{const a=_aStr(ws,r,1),f=_aStr(ws,r,6);if(/ĐẠI DIỆN|On behalf/i.test(a+f))last=r;});return last;}
-function _sigBlock(ws,row,c1,c2,s){
-  ws.mergeCells(row,c1,row,c2);const cell=ws.getCell(row,c1);
-  cell.value=(s.role||"").toUpperCase()+"\n"+(s.name||"…...........................")+"\n(Ký, ghi rõ họ tên)";
-  cell.font={name:"Times New Roman",size:12,bold:true};cell.alignment={horizontal:"center",vertical:"top",wrapText:true};
+function zHideRows(xml,rset){
+  if(!rset.size)return xml;
+  return xml.replace(/<row\b([^>]*?\br="(\d+)"[^>]*?)(\/?)>/g,(m,attrs,r,slash)=>
+    (!rset.has(+r)||/hidden=/.test(attrs))?m:'<row'+attrs+' hidden="1"'+slash+'>');
 }
-function _addSigners(wb,signers){
+// dọn cụm PCCC trong câu văn (thang thường)
+function zPcccClean(v){return v
+  .replace(/,?\s*chế độ PCCC[^.\n;]*/gi,"").replace(/;?\s*thử PCCC[^.\n;]*/gi,"")
+  .replace(/,?\s*(?:duy trì )?tính năng PCCC[^.\n;]*/gi,"").replace(/tín hiệu PCCC\/BMS/gi,"tín hiệu BMS")
+  .replace(/PCCC\/BMS\/FAS/gi,"BMS/FAS").replace(/,?\s*phản hồi đúng tín hiệu PCCC[^.\n;]*/gi,"")
+  .replace(/\/PCCC/g,"").replace(/[,;]\s*[^,.;\n]*\bPCCC\b[^,.;\n]*/gi,"").replace(/,\s*PCCC/g,"")
+  .replace(/\s+([.,;])/g,"$1").replace(/  +/g," ");}
+// thêm khối chữ ký thành phần bổ sung vào cuối sheetData + mergeCells
+function zAppendSigners(xml,signers){
   signers=(signers||[]).filter(s=>s&&(s.role||"").trim());
-  if(!signers.length)return;
-  ["PYC1_LapDatTinh","PYC2_DonDongKhongTai","PYC3_DonDongCoTai","PYC4_LienDongKhongTai","PYC5_LienDongCoTai","PYC6_HoanThanhHangMuc",
-   "BB1_LapDatTinh","BB2_DonDongKhongTai","BB3_DonDongCoTai","BB4_LienDongKhongTai","BB5_LienDongCoTai","BB6_HoanThanhHangMuc","BBG_BanGiao"].forEach(n=>{
-    const ws=wb.getWorksheet(n);if(!ws)return;
-    let r=_lastSigRow(ws)||ws.rowCount;r+=2;
-    ws.mergeCells(r,1,r,10);const h=ws.getCell(r,1);h.value="XÁC NHẬN CỦA CÁC THÀNH PHẦN KHÁC";h.font={name:"Times New Roman",size:12,bold:true,italic:true};h.alignment={horizontal:"center"};
-    r+=1;
-    for(let i=0;i<signers.length;i+=2){
-      _sigBlock(ws,r,1,5,signers[i]);
-      if(signers[i+1])_sigBlock(ws,r,6,10,signers[i+1]);
-      ws.getRow(r).height=80;r+=1;
-    }
-  });
+  if(!signers.length)return xml;
+  let sAttr="";const sm=xml.match(/<c r="[A-J]\d+" s="(\d+)"[^>]*>(?:(?!<\/c>)[\s\S]){0,60}?ĐẠI DIỆN/);
+  if(sm)sAttr=' s="'+sm[1]+'"';
+  let maxR=0;xml.replace(/<row\b[^>]*\br="(\d+)"/g,(m,r)=>{maxR=Math.max(maxR,+r);return m;});
+  let r=maxR+2,add="";const merges=[];
+  const cellX=(col,val)=>'<c r="'+col+r+'"'+sAttr+' t="inlineStr"><is><t>'+xescQ(val)+'</t></is></c>';
+  add+='<row r="'+r+'" ht="22" customHeight="1">'+cellX('A',"XÁC NHẬN CỦA CÁC THÀNH PHẦN KHÁC")+'</row>';
+  merges.push('A'+r+':J'+r);r++;
+  const sigTxt=s=>(s.role||"").toUpperCase()+"\n"+(s.name||"…...........................")+"\n(Ký, ghi rõ họ tên)";
+  for(let i=0;i<signers.length;i+=2){
+    let rx='<row r="'+r+'" ht="80" customHeight="1">'+cellX('A',sigTxt(signers[i]));
+    merges.push('A'+r+':E'+r);
+    if(signers[i+1]){rx+=cellX('F',sigTxt(signers[i+1]));merges.push('F'+r+':J'+r);}
+    rx+='</row>';add+=rx;r++;
+  }
+  xml=xml.replace('</sheetData>',add+'</sheetData>');
+  const mcTags=merges.map(x=>'<mergeCell ref="'+x+'"/>').join('');
+  if(/<mergeCells count="(\d+)"/.test(xml)){
+    xml=xml.replace(/<mergeCells count="(\d+)"/,(m,c)=>'<mergeCells count="'+(+c+merges.length)+'"');
+    xml=xml.replace('</mergeCells>',mcTags+'</mergeCells>');
+  }else if(/<\/mergeCells>/.test(xml)){
+    xml=xml.replace('</mergeCells>',mcTags+'</mergeCells>');
+  }else{
+    xml=xml.replace('</sheetData>','</sheetData><mergeCells count="'+merges.length+'">'+mcTags+'</mergeCells>');
+  }
+  return xml;
 }
 async function exportQuality(){
   const st=document.getElementById("q_status");st.textContent="Đang tạo hồ sơ…";
   try{
-    if(typeof ExcelJS==="undefined")throw new Error("Chưa tải được thư viện ExcelJS");
+    if(typeof JSZip==="undefined")throw new Error("Chưa tải được thư viện JSZip");
     const resp=await fetch("hoso_template.xlsx");
     if(!resp.ok)throw new Error("Không tải được file mẫu (HTTP "+resp.status+")");
-    const buf=await resp.arrayBuffer();
-    const wb=new ExcelJS.Workbook();await wb.xlsx.load(buf);
-    _fillData(wb);_applyElev(wb);
-    if(document.querySelector("input[name=qtype]:checked").value==="pass")_stripPCCC(wb);
-    _addSigners(wb,S.qSigners);
-    wb.calcProperties={fullCalcOnLoad:true};
-    const out=await wb.xlsx.writeBuffer();
+    const zip=await JSZip.loadAsync(await resp.arrayBuffer());
+    // sheet map cố định theo template đóng gói kèm app
+    const SH={DATA:1,DanhMuc:2,PYC1:3,BB1:4,PYC2:5,BB2:6,PYC3:7,BB3:8,PYC4:9,BB4:10,PYC5:11,BB5:12,PYC6:13,BB6:14,BBG:15};
+    const path=n=>"xl/worksheets/sheet"+n+".xml";
+    const get=n=>zip.file(path(n)).async("string");
+    const put=(n,x)=>zip.file(path(n),x);
+    // tham số
+    const names=S.qElevs.map(x=>(x||"").trim()).filter(Boolean);
+    const nStr=names.join(", ")||"P3";const qty=names.length||1;const qty2=String(qty).padStart(2,"0");
+    const type=document.querySelector("input[name=qtype]:checked").value;
+    const room=document.querySelector("input[name=qroom]:checked").value==="khong"?"không phòng máy":"có phòng máy";
+    const kind="chở khách"+(type==="pccc"?"/PCCC ":" ")+room;
+    const model=qv("q_model"),stops=qv("q_stops"),speed=qv("q_speed"),load=qv("q_load");
+    const elevFn=v=>v
+      .replace(/thang máy chở người\/PCCC có phòng máy/gi,"thang máy "+kind)
+      .replace(/Thang máy chở khách, PCCC, có Phòng máy/gi,"Thang máy "+kind)
+      .replace(/\bThang máy P3\b/g,"Thang máy "+nStr).replace(/\bthang máy P3\b/g,"thang máy "+nStr)
+      .replace(/\bthang P3\b/g,"thang "+nStr).replace(/\bTHANG MÁY P3\b/g,"THANG MÁY "+nStr.toUpperCase())
+      .replace(/\bsố P3\b/g,"số "+nStr).replace(/\bNo\. P3\b/g,"No. "+nStr)
+      .replace(/\bP3 -/g,nStr+" -").replace(/\bdừng tầng P3\b/g,"dừng tầng "+nStr);
+    // 1) DATA: điền giá trị + đổi tên thang trong tiêu đề
+    let dx=await get(SH.DATA);
+    const DVAL={C5:"q_duan",C6:"q_goithau",C7:"q_hangmuc",C8:"q_diadiem",C9:"q_mada",C11:"q_sohd",C12:"q_ngayhd",C13:"q_sopl",C14:"q_ngaypl",C15:"q_ngaybbvt",
+      C17:"q_a_ten",C18:"q_a_diachi",C19:"q_a_pl",C20:"q_a_pl_cv",C21:"q_a_nt1",C22:"q_a_nt1_cv",C23:"q_a_nt2",C24:"q_a_nt2_cv",
+      C26:"q_b_ten",C27:"q_b_diachi",C28:"q_b_pl",C29:"q_b_pl_cv",C30:"q_b_nt1",C31:"q_b_nt1_cv",C32:"q_b_nt2",C33:"q_b_nt2_cv",C35:"q_nhasx",C36:"q_cocq"};
+    for(const a in DVAL)dx=zSetCell(dx,a,qv(DVAL[a]));
+    put(SH.DATA,zRuns(dx,elevFn));
+    // 2) các sheet biểu mẫu
+    for(let n=2;n<=15;n++){
+      let xml=await get(n);
+      xml=zRuns(xml,elevFn);
+      if(type==="pass"){
+        xml=zHideRows(xml,zPcccRows(zRowInfos(xml)));
+        xml=zRuns(xml,zPcccClean);
+      }
+      // số lượng ở các phiếu yêu cầu (ô D20)
+      if([SH.PYC1,SH.PYC2,SH.PYC3,SH.PYC4,SH.PYC5,SH.PYC6].includes(n))
+        xml=xml.replace(/(<c r="D20"[^>]*t="inlineStr"[^>]*><is><t(?:\s[^>]*)?>)[^<]*(<\/t>)/,'$1'+qty+'$2');
+      // biên bản bàn giao: số lượng + thông số
+      if(n===SH.BBG){
+        xml=zRuns(xml,v=>v.replace(/Số lượng:\s*\d+/,"Số lượng: "+qty2).replace(/Quantity:\s*\d+/,"Quantity: "+qty2));
+        if(model)xml=zRuns(xml,v=>v.replace(/Schindler 6000/g,model));
+        const spec=(addr,val)=>{if(val)xml=zSetCell(xml,addr,val);};
+        spec("H26",model);spec("H27",stops);spec("H28",speed);spec("H29",load);
+      }
+      // thành phần ký bổ sung (phiếu + biên bản, không thêm vào DanhMuc)
+      if(n>=3)xml=zAppendSigners(xml,S.qSigners);
+      put(n,xml);
+    }
+    const blob=await zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",compression:"DEFLATE"});
     const mada=(qv("q_mada")||"thang_may").replace(/[^\w-]/g,"_");
-    saveAs(new Blob([out],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}),"HoSo_ChatLuong_"+mada+".xlsx");
-    st.textContent="✓ Đã xuất bộ hồ sơ chất lượng. Mở bằng Excel (biểu mẫu tự tính lại theo dữ liệu).";
+    saveAs(blob,"HoSo_ChatLuong_"+mada+".xlsx");
+    st.textContent="✓ Đã xuất bộ hồ sơ chất lượng ("+qty+" thang"+(S.qSigners.filter(s=>s&&(s.role||"").trim()).length?", có thành phần ký bổ sung":"")+").";
   }catch(e){st.textContent="Lỗi: "+e.message+". Lưu ý: chức năng này cần mở app qua GitHub Pages (không chạy khi mở file cục bộ).";}
 }
 /* điều hướng cấp cao: hợp đồng → chọn chức năng → (tiến độ | hồ sơ chất lượng) */
