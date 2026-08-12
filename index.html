@@ -49,6 +49,12 @@ input[type=checkbox],input[type=radio]{width:auto}
 .choosecard .ci{font-size:34px;line-height:1}
 .choosecard .ct{font-family:var(--disp);font-weight:800;font-size:17px;color:var(--navy);margin:10px 0 6px}
 .choosecard .cd{color:var(--muted);font-size:12.5px;line-height:1.5}
+.emailbox{border:1px solid var(--line);border-radius:8px;padding:20px 22px;background:#fff;font-family:Calibri,Arial,sans-serif;font-size:13.5px;line-height:1.55;color:#17212f;max-height:520px;overflow:auto}
+.emailbox p{margin:0 0 9px}
+.emailbox ul{margin:0 0 9px 20px}
+.emailbox table{border-collapse:collapse;margin:12px 0}
+.emailbox th,.emailbox td{border:1px solid #b7bfcc;padding:6px 12px;font-size:13px}
+.emailbox th{background:#eef1f5;text-align:left}
 .panel{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:26px 28px;margin-bottom:22px}
 .panel h2{font-family:var(--disp);font-stretch:85%;font-weight:800;font-size:19px;color:var(--navy);display:flex;align-items:center;gap:10px;margin-bottom:6px}
 .panel h2 .no{font-family:var(--mono);font-size:12px;font-weight:500;color:#fff;background:var(--red);border-radius:3px;padding:2px 7px}
@@ -332,6 +338,30 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font
     </div>
   </div>
   <div class="sheetbox"><div class="sheet" id="sheet"></div></div>
+
+  <!-- ===== THƯ XÁC NHẬN HÀNG VỀ & EMAIL ===== -->
+  <div class="panel" style="margin-top:22px">
+    <h2><span class="no">08</span>Thư xác nhận hàng về &amp; Email gửi khách hàng</h2>
+    <p class="hint">Thông tin khách hàng/hợp đồng lấy từ dữ liệu quét hợp đồng; các mốc ngày lấy từ bảng tiến độ ở trên (ngày hàng về = ngày kết thúc giai đoạn I). Sửa lại nếu cần rồi xuất file.</p>
+    <div class="grid g4">
+      <div class="f"><label>Người gửi (From)</label><input id="l_from" placeholder="Họ tên người gửi"></div>
+      <div class="f"><label>Ngày thư</label><input type="date" id="l_date"></div>
+      <div class="f"><label>Ngày hàng về công trình</label><input type="date" id="l_arrive"></div>
+      <div class="f"><label>Cần xong mặt bằng trước ngày</label><input type="date" id="l_site"></div>
+      <div class="f"><label>Số lượng thang</label><input id="l_qty" value="01"></div>
+      <div class="f"><label>Người nhận (xưng hô trong email)</label><input id="l_to" placeholder="VD: Anh Khôi / Chị Lan"></div>
+      <div class="f"><label>Ngày nhận tạm ứng đợt 1</label><input type="date" id="l_adv"></div>
+      <div class="f"><label>Điều khoản tính ngày (nêu trong email)</label><input id="l_clause" value="Điều 4.2 (a)"></div>
+    </div>
+    <div class="row" style="margin-top:16px">
+      <button class="btn sec" onclick="exportLetter()">⬇ Xuất thư xác nhận hàng về (.docx)</button>
+      <button class="btn gho" onclick="buildEmail()">↻ Tạo lại nội dung email</button>
+      <button class="btn pri" onclick="copyEmail()">📋 Copy nội dung email</button>
+      <span id="l_status" style="font-size:12.5px;color:var(--muted)"></span>
+    </div>
+    <p class="hint" style="margin:16px 0 6px"><b>Nội dung email</b> — bấm “Copy nội dung email” rồi dán thẳng vào Outlook/Gmail (giữ nguyên bảng &amp; định dạng).</p>
+    <div id="emailbox" class="emailbox"></div>
+  </div>
 </section>
 </section>
 <!-- /screenSchedule -->
@@ -757,7 +787,7 @@ function go(n){
     document.getElementById("tab"+k).classList.toggle("on",k===n);
   });
   if(n===2){pushForm();renderSteps();renderFactors();}
-  if(n===3){pullForm();renderPreview();}
+  if(n===3){pullForm();renderPreview();letterAutofill();}
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
@@ -1274,6 +1304,119 @@ function prefillQuality(){
   if(qty&&+qty[1]>=1&&S.qElevs.filter(x=>x&&x.trim()).length<=1){S.qElevs=Array.from({length:+qty[1]},(_,i)=>"P"+(i+1));renderQElevs();}
   document.getElementById("q_status").textContent="Đã lấy dữ liệu từ scan hợp đồng — kiểm tra & bổ sung các ô còn trống.";
 }
+/* ================================================================
+   THƯ XÁC NHẬN HÀNG VỀ (.docx) & NỘI DUNG EMAIL
+   Dữ liệu khách hàng/hợp đồng lấy từ scan (S.project); mốc ngày lấy
+   từ bảng tiến độ. Thư dựng bằng cách thay token trong file mẫu Word.
+================================================================ */
+const lv=id=>{const el=document.getElementById(id);return el?el.value.trim():"";};
+function isoUTC(d){return d?d.toISOString().slice(0,10):"";}
+function fmtVN(d){return d?pad2(d.getUTCDate())+"/"+pad2(d.getUTCMonth()+1)+"/"+d.getUTCFullYear():"";}
+function isoToVN(s){if(!s)return"";const p=s.split("-");return p.length===3?p[2]+"/"+p[1]+"/"+p[0]:s;}
+// lùi n ngày làm việc từ mốc (dùng để gợi ý ngày chuẩn bị mặt bằng)
+function backWork(d,n,mode,H){let x=new Date(d.getTime()),c=0;while(c<n){x=new Date(x.getTime()-DAY);if(mode==="cal"||isWork(x,H))c++;}return x;}
+// các mốc chính của tiến độ, dùng cho cả thư và email
+function scheduleMilestones(){
+  const s=computeSchedule();
+  const pick=id=>s.rows.find(r=>r.id===id);
+  return {base:s.base,mode:s.mode,H:s.H,I:pick("I"),II:pick("II"),III:pick("III")};
+}
+// tự điền các ô còn trống (không ghi đè khi người dùng đã sửa)
+function letterAutofill(){
+  if(!document.getElementById("l_arrive"))return;
+  let m;try{m=scheduleMilestones();}catch(e){return;}
+  const setIf=(id,v)=>{const el=document.getElementById(id);if(el&&!el.value&&v)el.value=v;};
+  if(m.I){
+    setIf("l_arrive",isoUTC(m.I.e));
+    setIf("l_site",isoUTC(backWork(m.I.e,7,m.mode,m.H)));
+  }
+  setIf("l_date",isoUTC(new Date()));
+  const eq=S.project.equip||"";const q=eq.match(/(\d{1,2})\s*thang máy/i);
+  const qEl=document.getElementById("l_qty");
+  if(qEl&&(!qEl.value||qEl.value==="01")&&q)qEl.value=pad2(+q[1]);
+  buildEmail();
+}
+/* ---------- Thư xác nhận hàng về (.docx) ---------- */
+async function exportLetter(){
+  const st=document.getElementById("l_status");st.textContent="Đang tạo thư…";
+  try{
+    if(typeof JSZip==="undefined")throw new Error("Chưa tải được thư viện JSZip");
+    const resp=await fetch("thu_hangve_template.docx");
+    if(!resp.ok)throw new Error("Không tải được file mẫu thư (HTTP "+resp.status+")");
+    const zip=await JSZip.loadAsync(await resp.arrayBuffer());
+    let doc=await zip.file("word/document.xml").async("string");
+    const P=S.project;
+    const map={
+      "{{KHACH_HANG}}":P.buyer||"Quý Khách hàng",
+      "{{DIA_CHI_KH}}":P.baddr||"",
+      "{{SO_HD}}":P.no||"",
+      "{{NGAY_KY_HD}}":P.cdate||"",
+      "{{DU_AN}}":P.name+(P.addr?" - "+P.addr:""),
+      "{{NGAY_HANG_VE}}":isoToVN(lv("l_arrive")),
+      "{{NGAY_MAT_BANG}}":isoToVN(lv("l_site")),
+      "{{NGAY_THU}}":isoToVN(lv("l_date")),
+      "{{NGUOI_GUI}}":lv("l_from"),
+      "{{SL_THANG}}":lv("l_qty")||"01"
+    };
+    for(const k in map)doc=doc.split(k).join(xescQ(map[k]));
+    zip.file("word/document.xml",doc);
+    const blob=await zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",compression:"DEFLATE"});
+    saveAs(blob,"Thu_xac_nhan_hang_ve_"+((P.no||"du_an").replace(/[^\w-]/g,"_"))+".docx");
+    st.textContent="✓ Đã xuất thư xác nhận hàng về (.docx).";
+  }catch(e){st.textContent="Lỗi: "+e.message+". Lưu ý: cần mở app qua GitHub Pages (không chạy khi mở file cục bộ).";}
+}
+/* ---------- Nội dung email ---------- */
+function buildEmail(){
+  const box=document.getElementById("emailbox");if(!box)return;
+  let m;try{m=scheduleMilestones();}catch(e){box.innerHTML="<p><i>Chưa đủ dữ liệu tiến độ.</i></p>";return;}
+  const P=S.project;
+  const to=lv("l_to")||"Quý Khách hàng";
+  // xưng hô suy ra từ ô người nhận (Anh/Chị/Ông/Bà); nếu không rõ thì dùng "Quý Khách"
+  const hon=(/^(anh|chị|chi|ông|ong|bà|ba)\b/i.test(to)?to.split(/\s+/)[0]:"Quý Khách");
+  const seller=P.seller||"Chi nhánh Công ty TNHH Schindler Việt Nam tại Hà Nội";
+  const sellerShort=/schindler/i.test(seller)?"Schindler":(seller.split(/\s+/).slice(-2).join(" ")||seller);
+  const unit=m.mode==="work"?"ngày làm việc":"ngày lịch";
+  const adv=isoToVN(lv("l_adv"));
+  const clause=lv("l_clause")||"điều khoản hợp đồng";
+  const row=(t,d,dt)=>`<tr><td>${esc(t)}</td><td style="text-align:center">${esc(d)}</td><td style="text-align:center"><b>${esc(dt)}</b></td></tr>`;
+  let h="";
+  h+=`<p><b>Kính gửi ${esc(to)},</b></p>`;
+  h+=`<p>Đại diện ${esc(seller)} xin gửi lời chào trân trọng đến ${esc(hon)}.</p>`;
+  h+=`<p>Căn cứ theo Hợp đồng số <b>${esc(P.no||"…")}</b>${adv?` và tình hình thực tế sau khi nhận khoản tạm ứng đợt 1 (ngày ${esc(adv)})`:""}, chúng tôi xin thông báo tiến độ thực hiện dự kiến.</p>`;
+  h+=`<p><i>Lưu ý: Theo <b>${esc(clause)}</b>, tiến độ dưới đây được tính dựa trên số ${unit} thực tế (không bao gồm Thứ Bảy, Chủ Nhật và các ngày nghỉ lễ theo quy định).</i></p>`;
+  h+=`<table><tr><th>Giai đoạn</th><th style="text-align:center">Số ${unit}</th><th style="text-align:center">Thời điểm</th></tr>`;
+  h+=row("Ký duyệt bản vẽ kỹ thuật","--",fmtVN(m.base));
+  if(m.I)h+=row("Sản xuất & Vận chuyển",m.I.days+" ngày",fmtVN(m.I.e));
+  if(m.II)h+=row("Thi công lắp đặt",m.II.days+" ngày",fmtVN(m.II.e));
+  if(m.III)h+=row("Kiểm định & Bàn giao sử dụng",pad2(m.III.days)+" ngày",fmtVN(m.III.e));
+  h+=`</table>`;
+  h+=`<p>Để đảm bảo công tác đặt hàng tại nhà máy được triển khai đúng kế hoạch, kính mong ${esc(hon)} xem xét và xác nhận tiến độ nêu trên.</p>`;
+  h+=`<p><b>Về việc xác nhận tiến độ:</b></p><ul>`;
+  h+=`<li>${esc(hon)} vui lòng phản hồi xác nhận email này trong vòng <b>07 (bảy) ngày làm việc</b> kể từ ngày gửi.</li>`;
+  h+=`<li>Sau thời hạn nêu trên, nếu chúng tôi không nhận được ý kiến phản hồi khác từ ${esc(hon)}, tiến độ này sẽ được hiểu là <b>đã được ${esc(hon)} chấp thuận</b> và làm cơ sở để ${esc(sellerShort)} triển khai các bước tiếp theo.</li></ul>`;
+  h+=`<p>${esc(sellerShort)} rất mong nhận được sự hỗ trợ của ${esc(hon)} để hạng mục thang máy của công trình hoàn thành tốt đẹp.</p>`;
+  h+=`<p>Trân trọng,</p>`;
+  box.innerHTML=h;
+}
+async function copyEmail(){
+  const box=document.getElementById("emailbox"),st=document.getElementById("l_status");
+  if(!box||!box.innerHTML.trim())buildEmail();
+  try{
+    await navigator.clipboard.write([new ClipboardItem({
+      "text/html":new Blob([box.innerHTML],{type:"text/html"}),
+      "text/plain":new Blob([box.innerText],{type:"text/plain"})
+    })]);
+    st.textContent="✓ Đã copy nội dung email — dán vào Outlook/Gmail (Ctrl+V).";
+  }catch(e){
+    try{ // dự phòng cho trình duyệt không hỗ trợ ClipboardItem
+      const r=document.createRange();r.selectNodeContents(box);
+      const sel=getSelection();sel.removeAllRanges();sel.addRange(r);
+      document.execCommand("copy");sel.removeAllRanges();
+      st.textContent="✓ Đã copy nội dung email (chế độ dự phòng).";
+    }catch(e2){st.textContent="Không copy được tự động — hãy bôi đen nội dung bên dưới và Ctrl+C.";}
+  }
+}
+
 /* ================================================================
    XUẤT HỒ SƠ — "phẫu thuật" ZIP trực tiếp trên file mẫu (JSZip):
    chỉ sửa đúng các đoạn XML cần thiết, mọi part khác giữ NGUYÊN BYTE
