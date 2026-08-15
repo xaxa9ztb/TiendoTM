@@ -1747,11 +1747,28 @@ async function exportQuality(){
 
     // ----- nhân bản phần I..VII cho từng đợt nghiệm thu -----
     const mB="{{PHASE_BEGIN}}",mE="{{PHASE_END}}";
+    let footerParts={};                      // các part footer cần ghi lại
     const iB=doc.indexOf(mB),iE=doc.indexOf(mE);
     if(iB>=0&&iE>iB){
       const pB=doc.lastIndexOf("<w:p",iB), pBe=doc.indexOf("</w:p>",iB)+6;
       const pE=doc.lastIndexOf("<w:p",iE), pEe=doc.indexOf("</w:p>",iE)+6;
       const head=doc.slice(0,pB), bodyTpl=doc.slice(pBe,pE), tail=doc.slice(pEe);
+      // footer mang số hiệu tài liệu -> mỗi đợt cần bản footer riêng
+      const relsPath="word/_rels/document.xml.rels";
+      let relsXml=await zip.file(relsPath).async("string");
+      let ctXml=await zip.file("[Content_Types].xml").async("string");
+      const ftrMap={};                       // rId gốc + số đợt -> rId mới
+      const ftrBody={};                       // nội dung các part footer gốc
+      const ftrSrc={};                       // rId -> tên file footer gốc
+      for(const m of relsXml.matchAll(/<Relationship[^>]*Id="(rId\d+)"[^>]*Target="(footer\d+\.xml)"[^>]*\/>/g))
+        ftrSrc[m[1]]=m[2];
+      let maxRid=0;
+      for(const m of relsXml.matchAll(/Id="rId(\d+)"/g))maxRid=Math.max(maxRid,+m[1]);
+      for(const rid in ftrSrc){
+        const f=zip.file("word/"+ftrSrc[rid]);
+        if(f)ftrBody["word/"+ftrSrc[rid]]=await f.async("string");
+      }
+      const newParts=footerParts;
       let body="";
       phases.forEach((p,pi)=>{
         const pe=phaseElevs(p), pNames=pe.map(e=>e.name).join(", ")||"…";
@@ -1765,7 +1782,35 @@ async function exportQuality(){
         if(!pe.some(e=>e.type==="pccc"))
           x=x.split("Chuyển sang chế độ vận hành ưu tiên cho lực lượng cứu hỏa")
              .join("Không áp dụng - đợt nghiệm thu này không có thang chữa cháy");
-        x=x.split("{{DOT}}").join(xescQ(p.no||pad2(pi+1)));
+        const dotVal=p.no||pad2(pi+1);
+        // đợt đầu dùng luôn footer gốc; các đợt sau nhân bản footer với số đợt riêng
+        if(pi===0){
+          for(const rid in ftrSrc){
+            const f="word/"+ftrSrc[rid];
+            if(newParts[f]===undefined)newParts[f]=(ftrBody[f]||"").split("{{DOT}}").join(xescQ(dotVal));
+          }
+        }else{
+          const used=new Set();
+          for(const m of x.matchAll(/<w:footerReference[^>]*r:id="(rId\d+)"/g))used.add(m[1]);
+          used.forEach(rid=>{
+            if(!ftrSrc[rid])return;
+            const name="footerP"+dotVal.replace(/\W/g,"")+"_"+rid+".xml";
+            if(newParts["word/"+name]===undefined){
+              newParts["word/"+name]=(ftrBody["word/"+ftrSrc[rid]]||"").split("{{DOT}}").join(xescQ(dotVal));
+              maxRid+=1;
+              relsXml=relsXml.replace("</Relationships>",
+                '<Relationship Id="rId'+maxRid+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="'+name+'"/></Relationships>');
+              ctXml=ctXml.replace("</Types>",
+                '<Override PartName="/word/'+name+'" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/></Types>');
+              ftrMap[rid+"|"+dotVal]="rId"+maxRid;
+            }
+            const nid=ftrMap[rid+"|"+dotVal];
+            x=x.split('<w:footerReference w:type="default" r:id="'+rid+'"')
+               .join('<w:footerReference w:type="default" r:id="'+nid+'"');
+            x=x.replace(new RegExp('(<w:footerReference[^>]*)r:id="'+rid+'"','g'),'$1r:id="'+nid+'"');
+          });
+        }
+        x=x.split("{{DOT}}").join(xescQ(dotVal));
         x=x.split("{{DS_THANG}}").join(xescQ(pNames));
         if(phases.length>1)
           x=x.replace(/(<w:t[^>]*>)PHẦN ([IVX]+)(<\/w:t>)/g,
@@ -1773,6 +1818,8 @@ async function exportQuality(){
         body+=x;
       });
       doc=head+body+tail;
+      zip.file(relsPath,relsXml);
+      zip.file("[Content_Types].xml",ctXml);
     }
     // danh mục hồ sơ: gộp đầy đủ mọi đợt
     doc=putBlock(doc,"{{BLOCK_DM}}",buildDanhMuc(map["{{MA_HS}}"],phases),true);
@@ -1782,6 +1829,12 @@ async function exportQuality(){
 
     for(const k in map)doc=doc.split(k).join(xescQ(map[k]));
     zip.file("word/document.xml",doc);
+    // footer cũng chứa số hiệu tài liệu -> phải thay token giống thân hồ sơ
+    for(const f in footerParts){
+      let ft=footerParts[f];
+      for(const k in map)ft=ft.split(k).join(xescQ(map[k]));
+      zip.file(f,ft);
+    }
     const blob=await zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",compression:"DEFLATE"});
     const tag=(qv("q_sohd")||congTrinh||"ho_so").replace(/[^\w-]/g,"_").slice(0,40);
     saveAs(blob,"Ho_so_chat_luong_"+tag+".docx");
