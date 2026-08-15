@@ -199,7 +199,7 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font
       <button class="choosecard" onclick="chooseFn('quality')">
         <div class="ci">📑</div>
         <div class="ct">Hồ sơ quản lý chất lượng</div>
-        <div class="cd">Phiếu yêu cầu, biên bản nghiệm thu &amp; bàn giao thang máy; hỗ trợ thang PCCC / thường và nhiều thang (.xlsx).</div>
+        <div class="cd">Trọn bộ hồ sơ nghiệm thu theo mẫu chuẩn: bìa, căn cứ &amp; danh mục, 7 phần nghiệm thu (phiếu đề nghị · biên bản nghiệm thu · biên bản kiểm tra), kiểm định và bản vẽ hoàn công (.docx).</div>
       </button>
     </div>
   </div>
@@ -366,86 +366,62 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font
 </section>
 <!-- /screenSchedule -->
 
-<!-- ===== CHỨC NĂNG: HỒ SƠ CHẤT LƯỢNG ===== -->
+<!-- ===== CHỨC NĂNG: HỒ SƠ CHẤT LƯỢNG (Word) ===== -->
 <section id="quality" class="hide">
   <div class="row" style="margin-bottom:12px"><button class="btn gho sm" onclick="toChoose()">← Chọn chức năng khác</button></div>
   <div class="panel">
-    <h2><span class="no">Q</span>Hồ sơ quản lý chất lượng (nghiệm thu &amp; bàn giao thang máy)</h2>
-    <p class="hint">Dữ liệu đã quét từ hợp đồng có thể lấy nhanh bằng nút bên dưới. Xuất bộ hồ sơ Excel gồm: 6 Phiếu yêu cầu + 6 Biên bản nghiệm thu (lắp đặt tĩnh, đơn/liên động không &amp; có tải, hoàn thành hạng mục) + Biên bản bàn giao. Toàn bộ biểu mẫu tự điền theo dữ liệu.</p>
+    <h2><span class="no">Q</span>Hồ sơ quản lý chất lượng (bộ hồ sơ nghiệm thu — Word)</h2>
+    <p class="hint">Xuất <b>trọn bộ hồ sơ chất lượng</b> theo mẫu chuẩn (.docx): bìa hồ sơ, căn cứ lập hồ sơ &amp; danh mục, và 7 phần nghiệm thu — mỗi phần gồm <i>Phiếu đề nghị nghiệm thu</i>, <i>Biên bản nghiệm thu công việc</i> và <i>Biên bản kiểm tra công tác nghiệm thu</i>; kèm phần hồ sơ kiểm định và bản vẽ hoàn công. Điền thông tin bên dưới rồi bấm xuất — mở bằng Word và in trực tiếp.</p>
     <div class="row" style="margin-bottom:8px">
       <button class="btn gho sm" onclick="prefillQuality()">⟳ Lấy lại dữ liệu từ scan hợp đồng</button>
+      <span id="q_note" style="font-size:12.5px;color:var(--muted)"></span>
     </div>
   </div>
 
   <div class="panel">
-    <h2 style="font-size:16px"><span class="no" style="background:var(--navy)">A</span>Thông tin dự án &amp; hợp đồng</h2>
+    <h2 style="font-size:16px"><span class="no" style="background:var(--navy)">A</span>Công trình &amp; hạng mục</h2>
     <div class="grid g2">
-      <div class="f" style="grid-column:1/-1"><label>Dự án</label><input id="q_duan"></div>
-      <div class="f" style="grid-column:1/-1"><label>Gói thầu</label><input id="q_goithau"></div>
-      <div class="f"><label>Hạng mục</label><input id="q_hangmuc" value="Cung cấp và lắp đặt thang máy"></div>
-      <div class="f"><label>Địa điểm</label><input id="q_diadiem"></div>
-      <div class="f"><label>Mã hồ sơ dự án (MaDA)</label><input id="q_mada" placeholder="VD: HACC1-TNC"></div>
+      <div class="f" style="grid-column:1/-1"><label>Tên công trình</label><input id="q_congtrinh" placeholder="VD: Trung tâm thương mại ABC"></div>
+      <div class="f" style="grid-column:1/-1"><label>Địa điểm xây dựng</label><input id="q_diadiem"></div>
+      <div class="f"><label>Hạng mục</label><input id="q_hangmuc" value="Cung cấp và thi công lắp đặt thang máy"></div>
+      <div class="f"><label>Mô tả thang (in ở bìa)</label><input id="q_motathang" placeholder="VD: (Thang máy P1 – Khu A và Thang máy P2 – Khu B)"></div>
+      <div class="f"><label>Địa danh (bìa hồ sơ)</label><input id="q_diadanh" placeholder="VD: Hà Nội"></div>
+      <div class="f"><label>Năm lập hồ sơ</label><input id="q_nam"></div>
+      <div class="f"><label>Quyển số</label><input id="q_quyenso" value="01/01"></div>
+      <div class="f"><label>Mã hiệu hồ sơ (tiền tố số tài liệu)</label><input id="q_mahs" value="SCH" placeholder="VD: SCH → SCH/YCNT/VLĐV/01"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2 style="font-size:16px"><span class="no" style="background:var(--navy)">B</span>Các bên tham gia</h2>
+    <p class="hint">Các tên này được điền vào toàn bộ phiếu, biên bản và khối chữ ký trong hồ sơ.</p>
+    <div class="grid g2">
+      <div class="f"><label>Chủ đầu tư</label><input id="q_cdt"></div>
+      <div class="f"><label>Tư vấn giám sát</label><input id="q_tvgs" placeholder="Để trống nếu chưa có"></div>
+      <div class="f"><label>Tổng thầu thi công</label><input id="q_tongthau"></div>
+      <div class="f"><label>Nhà thầu thi công thang máy</label><input id="q_nhathau"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2 style="font-size:16px"><span class="no" style="background:var(--navy)">C</span>Hợp đồng &amp; tài liệu căn cứ</h2>
+    <div class="grid g2">
       <div class="f"><label>Số hợp đồng</label><input id="q_sohd"></div>
-      <div class="f"><label>Ngày ký hợp đồng</label><input id="q_ngayhd" placeholder="dd/mm/yyyy"></div>
-      <div class="f"><label>Số phụ lục hợp đồng</label><input id="q_sopl"></div>
-      <div class="f"><label>Ngày ký phụ lục</label><input id="q_ngaypl" placeholder="dd/mm/yyyy"></div>
-      <div class="f"><label>Ngày BB nghiệm thu vật tư thiết bị</label><input id="q_ngaybbvt" placeholder="dd/mm/yyyy"></div>
+      <div class="f"><label>Ngày ký hợp đồng</label><input type="date" id="q_ngayhd"></div>
+      <div class="f"><label>Số phụ lục hợp đồng</label><input id="q_sopl" value="01"></div>
+      <div class="f"><label>Ngày ký phụ lục</label><input type="date" id="q_ngaypl"></div>
+      <div class="f"><label>Mã hiệu bản vẽ thi công được duyệt</label><input id="q_mabanve" placeholder="VD: BV-TM-01_r1"></div>
+      <div class="f"></div>
+      <div class="f"><label>Số giấy ủy quyền — Tổng thầu</label><input id="q_souqtt"></div>
+      <div class="f"><label>Ngày ủy quyền — Tổng thầu</label><input type="date" id="q_ngayuqtt"></div>
+      <div class="f"><label>Số giấy ủy quyền — Nhà thầu</label><input id="q_souqnt"></div>
+      <div class="f"><label>Ngày ủy quyền — Nhà thầu</label><input type="date" id="q_ngayuqnt"></div>
     </div>
   </div>
 
   <div class="panel">
-    <h2 style="font-size:16px"><span class="no" style="background:var(--navy)">B</span>Bên A (Bên Mua) &amp; Bên B (Bên Bán)</h2>
-    <div class="grid g2">
-      <div class="f"><label>Tên Bên A</label><input id="q_a_ten"></div>
-      <div class="f"><label>Tên Bên B</label><input id="q_b_ten"></div>
-      <div class="f"><label>Địa chỉ Bên A</label><input id="q_a_diachi"></div>
-      <div class="f"><label>Địa chỉ Bên B</label><input id="q_b_diachi"></div>
-      <div class="f"><label>ĐD pháp luật Bên A</label><input id="q_a_pl"></div>
-      <div class="f"><label>ĐD pháp luật Bên B</label><input id="q_b_pl"></div>
-      <div class="f"><label>Chức vụ ĐD pháp luật A</label><input id="q_a_pl_cv" value="Tổng Giám đốc"></div>
-      <div class="f"><label>Chức vụ ĐD pháp luật B</label><input id="q_b_pl_cv" value="Tổng Giám đốc"></div>
-      <div class="f"><label>ĐD nghiệm thu 1 – Bên A</label><input id="q_a_nt1"></div>
-      <div class="f"><label>ĐD nghiệm thu 1 – Bên B</label><input id="q_b_nt1"></div>
-      <div class="f"><label>Chức vụ NT1 – Bên A</label><input id="q_a_nt1_cv"></div>
-      <div class="f"><label>Chức vụ NT1 – Bên B</label><input id="q_b_nt1_cv"></div>
-      <div class="f"><label>ĐD nghiệm thu 2 – Bên A</label><input id="q_a_nt2"></div>
-      <div class="f"><label>ĐD nghiệm thu 2 – Bên B</label><input id="q_b_nt2"></div>
-      <div class="f"><label>Chức vụ NT2 – Bên A</label><input id="q_a_nt2_cv"></div>
-      <div class="f"><label>Chức vụ NT2 – Bên B</label><input id="q_b_nt2_cv"></div>
-    </div>
-  </div>
-
-  <div class="panel">
-    <h2 style="font-size:16px"><span class="no" style="background:var(--navy)">C</span>Thiết bị &amp; loại thang</h2>
-    <div class="grid g3" style="margin-bottom:14px">
-      <div class="f"><label>Nhà sản xuất</label><input id="q_nhasx" value="Schindler"></div>
-      <div class="f" style="grid-column:2/-1"><label>Giấy xuất xưởng, số lô (CO, CQ)</label><input id="q_cocq"></div>
-    </div>
-    <div class="grid g2" style="margin-bottom:14px">
-      <div class="f">
-        <label>Loại thang</label>
-        <div class="row" style="padding-top:6px">
-          <label style="text-transform:none;font-size:13px;font-weight:500"><input type="radio" name="qtype" value="pccc" checked> Thang PCCC (chữa cháy)</label>
-          <label style="text-transform:none;font-size:13px;font-weight:500"><input type="radio" name="qtype" value="pass"> Thang chở khách thường</label>
-        </div>
-        <p class="hint" style="margin-top:6px">Thang thường: tự bỏ mục &amp; check-list PCCC trong biên bản.</p>
-      </div>
-      <div class="f">
-        <label>Phòng máy</label>
-        <div class="row" style="padding-top:6px">
-          <label style="text-transform:none;font-size:13px;font-weight:500"><input type="radio" name="qroom" value="co" checked> Có phòng máy</label>
-          <label style="text-transform:none;font-size:13px;font-weight:500"><input type="radio" name="qroom" value="khong"> Không phòng máy (MRL)</label>
-        </div>
-      </div>
-    </div>
-    <div class="grid g4">
-      <div class="f"><label>Chủng loại / Model</label><input id="q_model" placeholder="VD: Schindler 5500"></div>
-      <div class="f"><label>Số điểm dừng</label><input id="q_stops"></div>
-      <div class="f"><label>Vận tốc (m/s)</label><input id="q_speed"></div>
-      <div class="f"><label>Tải trọng (kg)</label><input id="q_load"></div>
-    </div>
-    <h2 style="font-size:15px;margin-top:20px"><span class="no" style="background:var(--navy)">D</span>Danh sách thang (mỗi thang một tên)</h2>
-    <p class="hint">Số lượng &amp; tên các thang sẽ thể hiện trong phiếu yêu cầu, biên bản nghiệm thu và biên bản bàn giao.</p>
+    <h2 style="font-size:16px"><span class="no" style="background:var(--navy)">D</span>Danh sách thang máy</h2>
+    <p class="hint">Tên các thang thể hiện trong toàn bộ phiếu yêu cầu và biên bản nghiệm thu. Mẫu hồ sơ có sẵn nội dung cho 2 thang; thang thứ 3 trở đi sẽ được ghép vào danh sách chung.</p>
     <table class="edit" style="margin-top:8px">
       <thead><tr><th style="width:34px">#</th><th>Tên/mã hiệu thang</th><th style="width:36px"></th></tr></thead>
       <tbody id="qelevsbody"></tbody>
@@ -457,24 +433,9 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font
   </div>
 
   <div class="panel">
-    <h2 style="font-size:16px"><span class="no" style="background:var(--navy)">E</span>Thành phần ký bổ sung (ngoài Bên A, Bên B)</h2>
-    <p class="hint">Ví dụ: Tư vấn giám sát, Ban quản lý dự án, Chủ đầu tư… Khi thêm, khối chữ ký của các thành phần này sẽ được thêm vào cuối mỗi Phiếu yêu cầu &amp; Biên bản nghiệm thu và Biên bản bàn giao.</p>
-    <table class="edit" style="margin-top:8px">
-      <thead><tr><th style="width:30px">#</th><th>Thành phần (chức danh)</th><th>Đại diện (họ tên) — có thể để trống</th><th style="width:32px"></th></tr></thead>
-      <tbody id="qsignersbody"></tbody>
-    </table>
-    <div class="row" style="margin-top:10px">
-      <button class="btn gho sm" onclick="addQSigner()">+ Thêm thành phần ký</button>
-      <button class="btn gho sm" onclick="addQSigner('Tư vấn giám sát')">+ TVGS</button>
-      <button class="btn gho sm" onclick="addQSigner('Ban quản lý dự án')">+ Ban QLDA</button>
-      <button class="btn gho sm" onclick="addQSigner('Chủ đầu tư')">+ Chủ đầu tư</button>
-    </div>
-  </div>
-
-  <div class="panel">
     <div class="row" style="justify-content:flex-end;gap:12px">
       <span id="q_status" style="font-size:12.5px;color:var(--muted);margin-right:auto"></span>
-      <button class="btn pri" onclick="exportQuality()">⬇ Xuất bộ hồ sơ chất lượng (.xlsx)</button>
+      <button class="btn pri" onclick="exportQuality()">⬇ Xuất bộ hồ sơ chất lượng (.docx)</button>
     </div>
   </div>
 </section>
@@ -523,7 +484,6 @@ const S = {
   obligs:[],
   factors:[],
   qElevs:["P1"],
-  qSigners:[],
   logo:DEFAULT_LOGO,
 };
 
@@ -1258,8 +1218,9 @@ async function exportExcel(){
 function colName(n){let s="";while(n>0){const m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26);}return s;}
 
 /* ================================================================
-   HỒ SƠ QUẢN LÝ CHẤT LƯỢNG (chức năng ②)
-   Nạp mẫu hoso_template.xlsx → điền DATA + xử lý số lượng thang & PCCC.
+   HỒ SƠ QUẢN LÝ CHẤT LƯỢNG (chức năng ②) — bản Word
+   Nạp mẫu hoso_chatluong_template.docx và thay các {{TOKEN}} bằng
+   dữ liệu; mọi part khác của file giữ nguyên byte nên Word mở sạch.
 ================================================================ */
 const qv=id=>{const el=document.getElementById(id);return el?el.value.trim():"";};
 function renderQElevs(){
@@ -1275,34 +1236,81 @@ function renderQElevs(){
 }
 function addQElev(){S.qElevs.push("");renderQElevs();}
 function updateQCount(){const n=S.qElevs.filter(x=>x&&x.trim()).length;const el=document.getElementById("qelevcount");if(el)el.textContent=n;}
-function renderQSigners(){
-  const tb=document.getElementById("qsignersbody");if(!tb)return;tb.innerHTML="";
-  S.qSigners.forEach((sg,i)=>{
-    const tr=document.createElement("tr");
-    tr.innerHTML=`<td class="n">${i+1}</td>
-      <td><input value="${esc(sg.role||"")}" placeholder="VD: Tư vấn giám sát · Ban QLDA · Chủ đầu tư" onchange="S.qSigners[${i}].role=this.value"></td>
-      <td><input value="${esc(sg.name||"")}" placeholder="Họ tên người ký (tuỳ chọn)" onchange="S.qSigners[${i}].name=this.value"></td>
-      <td class="x"><button class="icb" title="Xóa" onclick="S.qSigners.splice(${i},1);renderQSigners()">✕</button></td>`;
-    tb.appendChild(tr);
-  });
-}
-function addQSigner(role){S.qSigners.push({role:role||"",name:""});renderQSigners();}
+// dd/mm/yyyy  và  "dd tháng m năm yyyy"
+function vnDate(iso){if(!iso)return"";const p=iso.split("-");return p.length===3?p[2]+"/"+p[1]+"/"+p[0]:iso;}
+function vnDateLong(iso){if(!iso)return"";const p=iso.split("-");return p.length===3?"ngày "+p[2]+" tháng "+(+p[1])+" năm "+p[0]:iso;}
+// chuyển "13/04/2026" (dữ liệu OCR) -> "2026-04-13" cho input type=date
+function toISO(s){const m=(s||"").match(/(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/);return m?m[3]+"-"+pad2(m[2])+"-"+pad2(m[1]):"";}
 function prefillQuality(){
-  const P=S.project,set=(id,v)=>{if(v)document.getElementById(id).value=v;};
-  set("q_duan",P.name);set("q_diadiem",P.addr);
-  set("q_sohd",P.no);set("q_ngayhd",P.cdate);
-  set("q_a_ten",P.buyer);set("q_a_diachi",P.baddr);set("q_a_pl",P.rep);
-  set("q_b_ten",P.seller);
-  // thông số thang từ chuỗi thiết bị đã OCR
-  const eq=P.equip||"";
-  const model=eq.match(/(schindler[\w\s]*\d{0,4}|mitsubishi[\w\s-]*|kone[\w\s]*|otis[\w\s-]*|hyundai[\w\s]*|fuji\w*|thyssen\w*|hitachi|toshiba)/i);
-  if(model)set("q_model",model[0].trim());
-  const stops=eq.match(/(\d{1,2})\s*điểm dừng/i);if(stops)set("q_stops",stops[1]);
-  const speed=eq.match(/(\d(?:[.,]\d{1,2})?)\s*m\/s/i);if(speed)set("q_speed",speed[1].replace(",","."));
-  const load=eq.match(/(\d{3,4})\s*kg/i);if(load)set("q_load",load[1]);
-  const qty=eq.match(/(\d{1,2})\s*thang máy/i);
-  if(qty&&+qty[1]>=1&&S.qElevs.filter(x=>x&&x.trim()).length<=1){S.qElevs=Array.from({length:+qty[1]},(_,i)=>"P"+(i+1));renderQElevs();}
-  document.getElementById("q_status").textContent="Đã lấy dữ liệu từ scan hợp đồng — kiểm tra & bổ sung các ô còn trống.";
+  const P=S.project,set=(id,v)=>{const el=document.getElementById(id);if(el&&v&&!el.value)el.value=v;};
+  set("q_congtrinh",P.name);set("q_diadiem",P.addr);
+  set("q_sohd",P.no);set("q_ngayhd",toISO(P.cdate));
+  set("q_tongthau",P.buyer);   // bên mua thường là tổng thầu / chủ đầu tư
+  set("q_nhathau",P.seller);
+  set("q_nam",String(new Date().getFullYear()));
+  // số lượng thang từ chuỗi thiết bị đã OCR
+  const eq=P.equip||"";const q=eq.match(/(\d{1,2})\s*thang máy/i);
+  if(q&&+q[1]>=1&&S.qElevs.filter(x=>x&&x.trim()).length<=1){
+    S.qElevs=Array.from({length:+q[1]},(_,i)=>"P"+(i+1));renderQElevs();
+  }
+  const n=document.getElementById("q_note");
+  if(n)n.textContent="Đã lấy dữ liệu từ hợp đồng — kiểm tra & bổ sung các ô còn trống.";
+}
+async function exportQuality(){
+  const st=document.getElementById("q_status");st.textContent="Đang tạo bộ hồ sơ…";
+  try{
+    if(typeof JSZip==="undefined")throw new Error("Chưa tải được thư viện JSZip");
+    const resp=await fetch("hoso_chatluong_template.docx");
+    if(!resp.ok)throw new Error("Không tải được file mẫu (HTTP "+resp.status+")");
+    const zip=await JSZip.loadAsync(await resp.arrayBuffer());
+    let doc=await zip.file("word/document.xml").async("string");
+
+    const names=S.qElevs.map(x=>(x||"").trim()).filter(Boolean);
+    const dsThang=names.join(", ")||"01";
+    const congTrinh=qv("q_congtrinh")||"…";
+    const hangMuc=qv("q_hangmuc")||"Cung cấp và thi công lắp đặt thang máy";
+    const tongThau=qv("q_tongthau")||"…";
+    const nhaThau=qv("q_nhathau")||"…";
+    const dash="…........................................";
+    const map={
+      "{{CONG_TRINH}}":congTrinh,
+      "{{CONG_TRINH_HOA}}":congTrinh.toUpperCase(),
+      "{{DIA_DIEM}}":qv("q_diadiem")||"…",
+      "{{HANG_MUC}}":hangMuc,
+      "{{HANG_MUC_HOA}}":hangMuc.toUpperCase(),
+      "{{MO_TA_THANG}}":qv("q_motathang")||(names.length?"(Thang máy "+dsThang+")":""),
+      "{{CHU_DAU_TU}}":qv("q_cdt")||dash,
+      "{{TVGS}}":qv("q_tvgs")||dash,
+      "{{TONG_THAU}}":tongThau,
+      "{{TONG_THAU_HOA}}":tongThau.toUpperCase(),
+      "{{NHA_THAU}}":nhaThau,
+      "{{NHA_THAU_HOA}}":nhaThau.toUpperCase(),
+      "{{SO_HD}}":qv("q_sohd")||"…",
+      "{{NGAY_HD}}":vnDate(qv("q_ngayhd"))||"…",
+      "{{NGAY_HD_DAI}}":(vnDateLong(qv("q_ngayhd"))||"ngày … tháng … năm …").replace(/^ngày /,""),
+      "{{SO_PL}}":qv("q_sopl")||"…",
+      "{{NGAY_PL}}":vnDate(qv("q_ngaypl"))||"…",
+      "{{NGAY_PL_DAI}}":(vnDateLong(qv("q_ngaypl"))||"ngày … tháng … năm …").replace(/^ngày /,""),
+      "{{MA_BAN_VE}}":qv("q_mabanve")||"…",
+      "{{SO_UQ_TT}}":qv("q_souqtt")||"…",
+      "{{NGAY_UQ_TT}}":vnDate(qv("q_ngayuqtt"))||"…",
+      "{{SO_UQ_NT}}":qv("q_souqnt")||"…",
+      "{{NGAY_UQ_NT}}":vnDate(qv("q_ngayuqnt"))||"…",
+      "{{DS_THANG}}":dsThang,
+      "{{THANG1}}":names[0]||"01",
+      "{{THANG2}}":names[1]||names[0]||"02",
+      "{{MA_HS}}":qv("q_mahs")||"HS",
+      "{{QUYEN_SO}}":qv("q_quyenso")||"01/01",
+      "{{DIA_DANH_HOA}}":(qv("q_diadanh")||"").toUpperCase()||"…",
+      "{{NAM}}":qv("q_nam")||String(new Date().getFullYear())
+    };
+    for(const k in map)doc=doc.split(k).join(xescQ(map[k]));
+    zip.file("word/document.xml",doc);
+    const blob=await zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",compression:"DEFLATE"});
+    const tag=(qv("q_sohd")||congTrinh||"ho_so").replace(/[^\w-]/g,"_").slice(0,40);
+    saveAs(blob,"Ho_so_chat_luong_"+tag+".docx");
+    st.textContent="✓ Đã xuất bộ hồ sơ chất lượng ("+(names.length||1)+" thang). Mở bằng Word để in.";
+  }catch(e){st.textContent="Lỗi: "+e.message+". Lưu ý: chức năng này cần mở app qua GitHub Pages (không chạy khi mở file cục bộ).";}
 }
 /* ================================================================
    THƯ XÁC NHẬN HÀNG VỀ (.docx) & NỘI DUNG EMAIL
@@ -1417,163 +1425,8 @@ async function copyEmail(){
   }
 }
 
-/* ================================================================
-   XUẤT HỒ SƠ — "phẫu thuật" ZIP trực tiếp trên file mẫu (JSZip):
-   chỉ sửa đúng các đoạn XML cần thiết, mọi part khác giữ NGUYÊN BYTE
-   so với template → tránh mọi rủi ro khi thư viện ghi lại toàn bộ file.
-================================================================ */
+/* --- tiện ích XML dùng chung cho các file .docx sinh ra --- */
 function xescQ(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
-function xunescQ(s){return s.replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,"&");}
-// áp hàm biến đổi lên nội dung text của <t> (chuỗi) và <f> (công thức)
-function zRuns(xml,fn){
-  xml=xml.replace(/(<t(?:\s[^>]*)?>)([\s\S]*?)(<\/t>)/g,(m,a,b,c)=>{const nv=fn(xunescQ(b));return nv===b?m:a+xescQ(nv)+c;});
-  xml=xml.replace(/(<f(?:\s[^>]*)?>)([\s\S]*?)(<\/f>)/g,(m,a,b,c)=>{const nv=fn(xunescQ(b));return nv===b?m:a+xescQ(nv)+c;});
-  return xml;
-}
-// điền giá trị vào ô trống (dạng <c r="C5" s="14" .../>) hoặc thay ô inlineStr sẵn có
-function zSetCell(xml,addr,val){
-  if(val==null||val==="")return xml;
-  const self=new RegExp('<c r="'+addr+'"([^>]*?)\\s*/>');
-  if(self.test(xml))return xml.replace(self,(m,attrs)=>'<c r="'+addr+'"'+attrs.replace(/\s*t="[^"]*"/,'')+' t="inlineStr"><is><t>'+xescQ(val)+'</t></is></c>');
-  const full=new RegExp('(<c r="'+addr+'"[^>]*t="inlineStr"[^>]*><is><t(?:\\s[^>]*)?>)[\\s\\S]*?(</t></is></c>)');
-  if(full.test(xml))return xml.replace(full,'$1'+xescQ(val)+'$2');
-  return xml;
-}
-// đọc thông tin từng dòng: số dòng + text cột A, cột B (từ <t> hoặc <f>)
-function zRowInfos(xml){
-  const infos=[];const re=/<row\b[^>]*\br="(\d+)"[^>]*(?:\/>|>([\s\S]*?)<\/row>)/g;let m;
-  while((m=re.exec(xml))){
-    const r=+m[1],inner=m[2]||"";
-    const pick=col=>{
-      const cm=inner.match(new RegExp('<c r="'+col+r+'"[^>]*(?:/>|>([\\s\\S]*?)</c>)'));
-      if(!cm||!cm[1])return "";
-      let t="";cm[1].replace(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g,(x,y)=>{t+=y;return x;});
-      if(!t)cm[1].replace(/<f(?:\s[^>]*)?>([\s\S]*?)<\/f>/g,(x,y)=>{t+=y;return x;});
-      return xunescQ(t);
-    };
-    infos.push({r,a:pick('A').trim(),b:pick('B').trim()});
-  }
-  return infos;
-}
-// quyết định các dòng PCCC cần ẩn (cùng thuật toán bản trước)
-function zPcccRows(infos){
-  const hide=new Set();let i=0;
-  const isEnd=x=>/^[A-Z]\.\s/.test(x.a)||/^(Ghi chú đánh giá|Người kiểm tra)/i.test(x.a)||/ĐẠI DIỆN/i.test(x.a);
-  while(i<infos.length){
-    const x=infos[i];
-    if(/^[A-Z]\.\s/.test(x.a)&&/PCCC|ch[ữu]a\s*ch[áa]y/i.test(x.a)){
-      hide.add(x.r);let j=i+1;
-      while(j<infos.length&&!isEnd(infos[j])){hide.add(infos[j].r);j++;}
-      i=j;continue;
-    }
-    if(/PCCC|c[ứu]u\s*h[ỏo]a|c[ứu]u\s*ho[ảa]|b[áa]o\s*ch[áa]y|Phase\s*[12]|fire/i.test(x.b)&&x.a.length>0&&x.a.length<=6)hide.add(x.r);
-    i++;
-  }
-  return hide;
-}
-function zHideRows(xml,rset){
-  if(!rset.size)return xml;
-  return xml.replace(/<row\b([^>]*?\br="(\d+)"[^>]*?)(\/?)>/g,(m,attrs,r,slash)=>
-    (!rset.has(+r)||/hidden=/.test(attrs))?m:'<row'+attrs+' hidden="1"'+slash+'>');
-}
-// dọn cụm PCCC trong câu văn (thang thường)
-function zPcccClean(v){return v
-  .replace(/,?\s*chế độ PCCC[^.\n;]*/gi,"").replace(/;?\s*thử PCCC[^.\n;]*/gi,"")
-  .replace(/,?\s*(?:duy trì )?tính năng PCCC[^.\n;]*/gi,"").replace(/tín hiệu PCCC\/BMS/gi,"tín hiệu BMS")
-  .replace(/PCCC\/BMS\/FAS/gi,"BMS/FAS").replace(/,?\s*phản hồi đúng tín hiệu PCCC[^.\n;]*/gi,"")
-  .replace(/\/PCCC/g,"").replace(/[,;]\s*[^,.;\n]*\bPCCC\b[^,.;\n]*/gi,"").replace(/,\s*PCCC/g,"")
-  .replace(/\s+([.,;])/g,"$1").replace(/  +/g," ");}
-// thêm khối chữ ký thành phần bổ sung vào cuối sheetData + mergeCells
-function zAppendSigners(xml,signers){
-  signers=(signers||[]).filter(s=>s&&(s.role||"").trim());
-  if(!signers.length)return xml;
-  let sAttr="";const sm=xml.match(/<c r="[A-J]\d+" s="(\d+)"[^>]*>(?:(?!<\/c>)[\s\S]){0,60}?ĐẠI DIỆN/);
-  if(sm)sAttr=' s="'+sm[1]+'"';
-  let maxR=0;xml.replace(/<row\b[^>]*\br="(\d+)"/g,(m,r)=>{maxR=Math.max(maxR,+r);return m;});
-  let r=maxR+2,add="";const merges=[];
-  const cellX=(col,val)=>'<c r="'+col+r+'"'+sAttr+' t="inlineStr"><is><t>'+xescQ(val)+'</t></is></c>';
-  add+='<row r="'+r+'" ht="22" customHeight="1">'+cellX('A',"XÁC NHẬN CỦA CÁC THÀNH PHẦN KHÁC")+'</row>';
-  merges.push('A'+r+':J'+r);r++;
-  const sigTxt=s=>(s.role||"").toUpperCase()+"\n"+(s.name||"…...........................")+"\n(Ký, ghi rõ họ tên)";
-  for(let i=0;i<signers.length;i+=2){
-    let rx='<row r="'+r+'" ht="80" customHeight="1">'+cellX('A',sigTxt(signers[i]));
-    merges.push('A'+r+':E'+r);
-    if(signers[i+1]){rx+=cellX('F',sigTxt(signers[i+1]));merges.push('F'+r+':J'+r);}
-    rx+='</row>';add+=rx;r++;
-  }
-  xml=xml.replace('</sheetData>',add+'</sheetData>');
-  const mcTags=merges.map(x=>'<mergeCell ref="'+x+'"/>').join('');
-  if(/<mergeCells count="(\d+)"/.test(xml)){
-    xml=xml.replace(/<mergeCells count="(\d+)"/,(m,c)=>'<mergeCells count="'+(+c+merges.length)+'"');
-    xml=xml.replace('</mergeCells>',mcTags+'</mergeCells>');
-  }else if(/<\/mergeCells>/.test(xml)){
-    xml=xml.replace('</mergeCells>',mcTags+'</mergeCells>');
-  }else{
-    xml=xml.replace('</sheetData>','</sheetData><mergeCells count="'+merges.length+'">'+mcTags+'</mergeCells>');
-  }
-  return xml;
-}
-async function exportQuality(){
-  const st=document.getElementById("q_status");st.textContent="Đang tạo hồ sơ…";
-  try{
-    if(typeof JSZip==="undefined")throw new Error("Chưa tải được thư viện JSZip");
-    const resp=await fetch("hoso_template.xlsx");
-    if(!resp.ok)throw new Error("Không tải được file mẫu (HTTP "+resp.status+")");
-    const zip=await JSZip.loadAsync(await resp.arrayBuffer());
-    // sheet map cố định theo template đóng gói kèm app
-    const SH={DATA:1,DanhMuc:2,PYC1:3,BB1:4,PYC2:5,BB2:6,PYC3:7,BB3:8,PYC4:9,BB4:10,PYC5:11,BB5:12,PYC6:13,BB6:14,BBG:15};
-    const path=n=>"xl/worksheets/sheet"+n+".xml";
-    const get=n=>zip.file(path(n)).async("string");
-    const put=(n,x)=>zip.file(path(n),x);
-    // tham số
-    const names=S.qElevs.map(x=>(x||"").trim()).filter(Boolean);
-    const nStr=names.join(", ")||"P3";const qty=names.length||1;const qty2=String(qty).padStart(2,"0");
-    const type=document.querySelector("input[name=qtype]:checked").value;
-    const room=document.querySelector("input[name=qroom]:checked").value==="khong"?"không phòng máy":"có phòng máy";
-    const kind="chở khách"+(type==="pccc"?"/PCCC ":" ")+room;
-    const model=qv("q_model"),stops=qv("q_stops"),speed=qv("q_speed"),load=qv("q_load");
-    const elevFn=v=>v
-      .replace(/thang máy chở người\/PCCC có phòng máy/gi,"thang máy "+kind)
-      .replace(/Thang máy chở khách, PCCC, có Phòng máy/gi,"Thang máy "+kind)
-      .replace(/\bThang máy P3\b/g,"Thang máy "+nStr).replace(/\bthang máy P3\b/g,"thang máy "+nStr)
-      .replace(/\bthang P3\b/g,"thang "+nStr).replace(/\bTHANG MÁY P3\b/g,"THANG MÁY "+nStr.toUpperCase())
-      .replace(/\bsố P3\b/g,"số "+nStr).replace(/\bNo\. P3\b/g,"No. "+nStr)
-      .replace(/\bP3 -/g,nStr+" -").replace(/\bdừng tầng P3\b/g,"dừng tầng "+nStr);
-    // 1) DATA: điền giá trị + đổi tên thang trong tiêu đề
-    let dx=await get(SH.DATA);
-    const DVAL={C5:"q_duan",C6:"q_goithau",C7:"q_hangmuc",C8:"q_diadiem",C9:"q_mada",C11:"q_sohd",C12:"q_ngayhd",C13:"q_sopl",C14:"q_ngaypl",C15:"q_ngaybbvt",
-      C17:"q_a_ten",C18:"q_a_diachi",C19:"q_a_pl",C20:"q_a_pl_cv",C21:"q_a_nt1",C22:"q_a_nt1_cv",C23:"q_a_nt2",C24:"q_a_nt2_cv",
-      C26:"q_b_ten",C27:"q_b_diachi",C28:"q_b_pl",C29:"q_b_pl_cv",C30:"q_b_nt1",C31:"q_b_nt1_cv",C32:"q_b_nt2",C33:"q_b_nt2_cv",C35:"q_nhasx",C36:"q_cocq"};
-    for(const a in DVAL)dx=zSetCell(dx,a,qv(DVAL[a]));
-    put(SH.DATA,zRuns(dx,elevFn));
-    // 2) các sheet biểu mẫu
-    for(let n=2;n<=15;n++){
-      let xml=await get(n);
-      xml=zRuns(xml,elevFn);
-      if(type==="pass"){
-        xml=zHideRows(xml,zPcccRows(zRowInfos(xml)));
-        xml=zRuns(xml,zPcccClean);
-      }
-      // số lượng ở các phiếu yêu cầu (ô D20)
-      if([SH.PYC1,SH.PYC2,SH.PYC3,SH.PYC4,SH.PYC5,SH.PYC6].includes(n))
-        xml=xml.replace(/(<c r="D20"[^>]*t="inlineStr"[^>]*><is><t(?:\s[^>]*)?>)[^<]*(<\/t>)/,'$1'+qty+'$2');
-      // biên bản bàn giao: số lượng + thông số
-      if(n===SH.BBG){
-        xml=zRuns(xml,v=>v.replace(/Số lượng:\s*\d+/,"Số lượng: "+qty2).replace(/Quantity:\s*\d+/,"Quantity: "+qty2));
-        if(model)xml=zRuns(xml,v=>v.replace(/Schindler 6000/g,model));
-        const spec=(addr,val)=>{if(val)xml=zSetCell(xml,addr,val);};
-        spec("H26",model);spec("H27",stops);spec("H28",speed);spec("H29",load);
-      }
-      // thành phần ký bổ sung (phiếu + biên bản, không thêm vào DanhMuc)
-      if(n>=3)xml=zAppendSigners(xml,S.qSigners);
-      put(n,xml);
-    }
-    const blob=await zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",compression:"DEFLATE"});
-    const mada=(qv("q_mada")||"thang_may").replace(/[^\w-]/g,"_");
-    saveAs(blob,"HoSo_ChatLuong_"+mada+".xlsx");
-    st.textContent="✓ Đã xuất bộ hồ sơ chất lượng ("+qty+" thang"+(S.qSigners.filter(s=>s&&(s.role||"").trim()).length?", có thành phần ký bổ sung":"")+").";
-  }catch(e){st.textContent="Lỗi: "+e.message+". Lưu ý: chức năng này cần mở app qua GitHub Pages (không chạy khi mở file cục bộ).";}
-}
 /* điều hướng cấp cao: hợp đồng → chọn chức năng → (tiến độ | hồ sơ chất lượng) */
 function showScreen(name){
   ["screenContract","screenChoose","screenSchedule","quality"].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.toggle("hide",id!==name);});
@@ -1613,7 +1466,7 @@ document.getElementById("baseline2").onchange=function(){document.getElementById
 document.getElementById("holidays").oninput=function(){document.getElementById("holidays2").value=this.value;};
 
 autoFillHolidays(true); // tự liệt kê ngày nghỉ lễ VN ngay khi mở
-renderSigners();renderSteps();renderFactors();renderQElevs();renderQSigners();pushForm();showLogo();
+renderSigners();renderSteps();renderFactors();renderQElevs();pushForm();showLogo();
 showScreen("screenContract"); // bắt đầu ở bước nhập hợp đồng
 </script>
 </body>
