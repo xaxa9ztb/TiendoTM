@@ -428,18 +428,26 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font
 
   <div class="panel">
     <h2 style="font-size:16px"><span class="no" style="background:var(--navy)">D</span>Danh sách thang máy &amp; phạm vi nghiệm thu</h2>
-    <p class="hint">Khai báo <b>toàn bộ thang của dự án</b>, rồi tick cột <b>NT</b> chọn thang đưa vào đợt nghiệm thu này (1 thang, một số thang, hay tất cả). Loại thang và phòng máy được ghi vào bảng khối lượng của mọi biên bản.</p>
+    <p class="hint">Khai báo <b>toàn bộ thang của dự án</b>, sau đó chia các <b>đợt nghiệm thu</b> ở mục D3 (1 thang, một số thang, hay tất cả). Loại thang và phòng máy được ghi vào bảng khối lượng của mọi biên bản.</p>
     <div style="overflow-x:auto">
     <table class="edit" style="margin-top:8px;min-width:1050px">
-      <thead><tr><th style="width:28px">#</th><th style="width:34px" title="Đưa vào đợt nghiệm thu này">NT</th><th style="width:90px">Tên thang</th><th>Vị trí</th><th style="width:150px">Loại thang</th><th style="width:135px">Phòng máy</th><th style="width:130px">Model</th><th style="width:80px">Tải (kg)</th><th style="width:80px">Số người</th><th style="width:80px">Vận tốc</th><th style="width:90px">Điểm dừng</th><th style="width:32px"></th></tr></thead>
+      <thead><tr><th style="width:28px">#</th><th style="width:90px">Tên thang</th><th>Vị trí</th><th style="width:150px">Loại thang</th><th style="width:135px">Phòng máy</th><th style="width:130px">Model</th><th style="width:80px">Tải (kg)</th><th style="width:80px">Số người</th><th style="width:80px">Vận tốc</th><th style="width:90px">Điểm dừng</th><th style="width:32px"></th></tr></thead>
       <tbody id="qelevsbody"></tbody>
     </table>
     </div>
     <div class="row" style="margin-top:10px">
       <button class="btn gho sm" onclick="addQElev()">+ Thêm thang</button>
-      <span style="margin-left:auto" class="sum">Nghiệm thu đợt này: <span id="qelevcount">0/0</span></span>
+      <span style="margin-left:auto" class="sum">Tổng số thang: <span id="qelevcount">0</span></span>
     </div>
     <p class="hint" id="q_scope" style="margin-top:8px;color:var(--navy);font-weight:600"></p>
+
+    <h2 style="font-size:15px;margin-top:24px"><span class="no" style="background:var(--navy)">D3</span>Đợt nghiệm thu</h2>
+    <p class="hint">Nghiệm thu có thể chia nhiều đợt. Mỗi đợt chọn các thang thuộc đợt đó. Khi xuất, bộ hồ sơ sẽ gồm <b>đầy đủ tài liệu của tất cả các đợt</b> và <b>danh mục hồ sơ được cập nhật trọn bộ</b>.</p>
+    <div id="qphasesbox"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn gho sm" onclick="addQPhase()">+ Thêm đợt nghiệm thu</button>
+      <span style="margin-left:auto" class="sum">Số đợt: <span id="qphasecount">0</span></span>
+    </div>
 
     <h2 style="font-size:15px;margin-top:22px"><span class="no" style="background:var(--navy)">D2</span>Hạng mục khác (tuỳ chọn)</h2>
     <p class="hint">Các hạng mục ngoài thang máy đưa vào bảng khối lượng nghiệm thu: đà thép, bản mã, gối đôn, khối lượng phát sinh theo phụ lục…</p>
@@ -504,6 +512,7 @@ const S = {
   qElevs:["P1"],
   qParties:[],
   qExtras:[],
+  qPhases:[],
   logo:DEFAULT_LOGO,
 };
 
@@ -1248,7 +1257,7 @@ const ELEV_TYPES={khach:"Thang chở khách",pccc:"Thang chữa cháy (PCCC)",ha
 function newElev(name){return {name:name||"",pos:"",type:"khach",room:"khong",model:"",load:"",persons:"",speed:"",stops:"",sel:true};}
 // chuyển dữ liệu cũ (mảng chuỗi) sang dạng đối tượng
 function normElevs(){S.qElevs=(S.qElevs||[]).map(e=>typeof e==="string"?newElev(e):Object.assign(newElev(),e));}
-function selElevs(){return S.qElevs.filter(e=>e.sel&&(e.name||"").trim());}
+function selElevs(){ensurePhases();const set=[];S.qPhases.forEach(p=>phaseElevs(p).forEach(e=>{if(set.indexOf(e)<0)set.push(e);}));return set;}
 function elevLabel(e){
   const t=ELEV_TYPES[e.type]||ELEV_TYPES.khach;
   return t+(e.room==="co"?", có phòng máy":", không phòng máy (MRL)");
@@ -1259,7 +1268,6 @@ function renderQElevs(){
     const opt=(v,cur,txt)=>`<option value="${v}"${cur===v?" selected":""}>${txt}</option>`;
     const tr=document.createElement("tr");
     tr.innerHTML=`<td class="n">${i+1}</td>
-      <td style="text-align:center"><input type="checkbox" ${e.sel?"checked":""} title="Đưa vào đợt nghiệm thu này" onchange="S.qElevs[${i}].sel=this.checked;updateQCount()"></td>
       <td><input value="${esc(e.name)}" placeholder="P1" onchange="S.qElevs[${i}].name=this.value;updateQCount()"></td>
       <td><input value="${esc(e.pos)}" placeholder="Vị trí, VD: Khu Showroom" onchange="S.qElevs[${i}].pos=this.value"></td>
       <td><select onchange="S.qElevs[${i}].type=this.value">${Object.keys(ELEV_TYPES).map(k=>opt(k,e.type,ELEV_TYPES[k])).join("")}</select></td>
@@ -1277,12 +1285,15 @@ function renderQElevs(){
 function addQElev(){normElevs();S.qElevs.push(newElev());renderQElevs();}
 function updateQCount(){
   normElevs();
-  const tot=S.qElevs.filter(e=>(e.name||"").trim()).length,sel=selElevs().length;
-  const el=document.getElementById("qelevcount");if(el)el.textContent=sel+"/"+tot;
+  const tot=S.qElevs.filter(e=>(e.name||"").trim()).length;
+  const el=document.getElementById("qelevcount");if(el)el.textContent=tot;
   const sc=document.getElementById("q_scope");
-  if(sc)sc.textContent=!tot?"":(sel===tot
-    ?"Đợt này nghiệm thu TOÀN BỘ "+pad2(tot)+" thang máy của dự án."
-    :"Đợt này nghiệm thu "+pad2(sel)+"/"+pad2(tot)+" thang máy của dự án: "+selElevs().map(e=>e.name).join(", ")+".");
+  if(!sc)return;
+  ensurePhases();
+  const parts=S.qPhases.map(p=>(p.label||"Đợt "+p.no)+": "+(phaseElevs(p).map(e=>e.name).join(", ")||"(chưa chọn thang)"));
+  sc.textContent=!tot?"":(S.qPhases.length===1&&phaseElevs(S.qPhases[0]).length===tot
+    ?"Nghiệm thu 01 đợt cho TOÀN BỘ "+pad2(tot)+" thang máy của dự án."
+    :"Bộ hồ sơ gồm "+pad2(S.qPhases.length)+" đợt — "+parts.join(" · "));
 }
 /* ---------- sinh dòng bảng khối lượng nghiệm thu ---------- */
 const TBW=[520,1714,3229,569,679,1049,946,932];
@@ -1468,6 +1479,180 @@ function putBlock(doc,tok,xml,inRow){
   return doc.replace(re,()=>xml);
 }
 
+/* ---------- Đợt nghiệm thu: 1 bộ hồ sơ gồm đầy đủ các đợt ---------- */
+const SECS=[
+  {ma:"VLĐV",ten:"NGHIỆM THU VẬT LIỆU THIẾT BỊ ĐẦU VÀO"},
+  {ma:"LĐT", ten:"LẮP ĐẶT TĨNH THIẾT BỊ THANG MÁY VÀ ĐÀ THÉP"},
+  {ma:"CTĐĐ-KT",ten:"CHẠY THỬ ĐƠN ĐỘNG KHÔNG TẢI THIẾT BỊ THANG MÁY"},
+  {ma:"CTĐĐ-CT",ten:"CHẠY THỬ ĐƠN ĐỘNG CÓ TẢI THIẾT BỊ THANG MÁY"},
+  {ma:"CTLĐ-KT",ten:"CHẠY THỬ LIÊN ĐỘNG KHÔNG TẢI HỆ THỐNG THANG MÁY"},
+  {ma:"CTLĐ-CT",ten:"CHẠY THỬ LIÊN ĐỘNG CÓ TẢI HỆ THỐNG THANG MÁY"},
+  {ma:"HTHM", ten:"HOÀN THÀNH HẠNG MỤC THANG MÁY ĐƯA VÀO SỬ DỤNG"}
+];
+const ROMAN=["I","II","III","IV","V","VI","VII","VIII","IX","X"];
+function newPhase(n){return {no:pad2(n),label:"Đợt "+n,ids:[]};}
+function ensurePhases(){
+  if(!S.qPhases||!S.qPhases.length){
+    S.qPhases=[newPhase(1)];
+    S.qPhases[0].ids=S.qElevs.map((e,i)=>i);   // mặc định: 1 đợt gồm tất cả thang
+  }
+  const max=S.qElevs.length;
+  S.qPhases.forEach(p=>{p.ids=(p.ids||[]).filter(i=>i<max);});
+}
+function phaseElevs(p){return (p.ids||[]).map(i=>S.qElevs[i]).filter(e=>e&&(e.name||"").trim());}
+function renderQPhases(){
+  const box=document.getElementById("qphasesbox");if(!box)return;
+  normElevs();ensurePhases();box.innerHTML="";
+  S.qPhases.forEach((p,i)=>{
+    const chks=S.qElevs.map((e,k)=>`<label class="chk" style="text-transform:none;font-weight:500">
+      <input type="checkbox" ${(p.ids||[]).indexOf(k)>=0?"checked":""} onchange="togglePhaseElev(${i},${k},this.checked)">${esc(e.name||"(chưa đặt tên)")}</label>`).join(" ");
+    const d=document.createElement("div");d.className="party";
+    d.innerHTML=`<div class="phead" style="grid-template-columns:90px 1.2fr 3fr 34px">
+        <div class="f" style="margin:0"><label>Số đợt</label><input value="${esc(p.no)}" onchange="S.qPhases[${i}].no=this.value" placeholder="01"></div>
+        <div class="f" style="margin:0"><label>Tên đợt</label><input value="${esc(p.label)}" onchange="S.qPhases[${i}].label=this.value"></div>
+        <div class="f" style="margin:0"><label>Thang nghiệm thu trong đợt</label><div class="row" style="flex-wrap:wrap;gap:12px;padding-top:6px">${chks||"<i style='color:var(--muted);font-size:12px'>Chưa khai báo thang</i>"}</div></div>
+        <button class="icb" title="Xóa đợt" onclick="S.qPhases.splice(${i},1);renderQPhases()">✕</button>
+      </div>`;
+    box.appendChild(d);
+  });
+  const c=document.getElementById("qphasecount");if(c)c.textContent=S.qPhases.length;
+  updateQCount();
+}
+function togglePhaseElev(pi,ei,on){
+  const ids=S.qPhases[pi].ids||(S.qPhases[pi].ids=[]);
+  const k=ids.indexOf(ei);
+  if(on&&k<0)ids.push(ei); else if(!on&&k>=0)ids.splice(k,1);
+  ids.sort((a,b)=>a-b);updateQCount();
+}
+function addQPhase(){ensurePhases();S.qPhases.push(newPhase(S.qPhases.length+1));renderQPhases();}
+
+/* ---------- Danh mục hồ sơ: gộp đầy đủ mọi đợt ---------- */
+const DMW=[614,993,3339,2218,1300,1174];
+function dmCell(w,t,cen,bold,shade){
+  const cp=cen?'<w:pPr><w:jc w:val="center"/></w:pPr>':"";
+  return '<w:tc><w:tcPr><w:tcW w:w="'+w+'" w:type="dxa"/>'+(shade?'<w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/>':"")
+    +TCMAR+'</w:tcPr>'+wPar(t?wRunSz(t,bold):"",cp)+'</w:tc>';
+}
+function wRunSz(t,bold){
+  return "<w:r><w:rPr>"+(bold?"<w:b/><w:bCs/>":"")+'<w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr>'
+    +'<w:t xml:space="preserve">'+xescQ(t)+"</w:t></w:r>";
+}
+function dmGroup(rom,ten){
+  return '<w:tr>'+dmCell(DMW[0],rom,1,1,1)
+    +'<w:tc><w:tcPr><w:tcW w:w="'+(9638-DMW[0])+'" w:type="dxa"/><w:gridSpan w:val="5"/>'
+    +'<w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/>'+TCMAR+'</w:tcPr>'+wPar(wRunSz(ten,1))+'</w:tc></w:tr>';
+}
+function dmRow(stt,ma,ten,so){
+  const dot=".....................";
+  return '<w:tr>'+dmCell(DMW[0],String(stt),1)+dmCell(DMW[1],ma,1)+dmCell(DMW[2],ten)
+    +dmCell(DMW[3],so,1)+dmCell(DMW[4],dot,1)+dmCell(DMW[5],"")+'</w:tr>';
+}
+function buildDanhMuc(mahs,phases){
+  let out="",stt=0;
+  phases.forEach(p=>{
+    const els=phaseElevs(p).map(e=>e.name).join(", ");
+    SECS.forEach((sc,si)=>{   // mỗi đợt lặp lại PHẦN I..VII, khớp với thân hồ sơ
+      out+=dmGroup(ROMAN[si],sc.ten+(phases.length>1?" — "+(p.label||"Đợt "+p.no).toUpperCase()+(els?" ("+els+")":""):""));
+      [["YCNT","Phiếu đề nghị nghiệm thu"],["BBNT","Biên bản nghiệm thu công việc"],
+       ["BBKT","Biên bản kiểm tra công tác nghiệm thu công việc"]].forEach(d=>{
+        out+=dmRow(++stt,d[0],d[1],mahs+"/"+d[0]+"/"+sc.ma+"/"+p.no);
+      });
+    });
+  });
+  const dsAll=S.qElevs.filter(e=>(e.name||"").trim()).map(e=>e.name).join(", ");
+  out+=dmGroup(ROMAN[7],"HỒ SƠ KIỂM ĐỊNH KỸ THUẬT AN TOÀN THANG MÁY");
+  [["BBKĐ","Biên bản kiểm định kỹ thuật an toàn thang máy ("+dsAll+")"],
+   ["GCNKĐ","Giấy chứng nhận kết quả kiểm định kỹ thuật an toàn"],
+   ["LLTB","Lý lịch thang máy (lý lịch thiết bị)"]].forEach(d=>{
+    out+='<w:tr>'+dmCell(DMW[0],String(++stt),1)+dmCell(DMW[1],d[0],1)+dmCell(DMW[2],d[1])
+      +dmCell(DMW[3],".....................",1)+dmCell(DMW[4],".....................",1)+dmCell(DMW[5],"")+'</w:tr>';
+  });
+  out+=dmGroup(ROMAN[8],"BẢN VẼ HOÀN CÔNG");
+  out+='<w:tr>'+dmCell(DMW[0],String(++stt),1)+dmCell(DMW[1],"BVHC",1)
+    +dmCell(DMW[2],"Bản vẽ hoàn công hệ thống thang máy "+dsAll+" và các hạng mục kèm theo")
+    +dmCell(DMW[3],".....................",1)+dmCell(DMW[4],".....................",1)+dmCell(DMW[5],"")+'</w:tr>';
+  return out;
+}
+
+/* ---------- Nhóm tiêu chí bổ sung trong Biên bản kiểm tra ---------- */
+const KTW=[430,2500,950,1888,950,550,750,850,770];
+function ktGroup(t){
+  return '<w:tr><w:tc><w:tcPr><w:tcW w:w="9638" w:type="dxa"/><w:gridSpan w:val="9"/>'
+    +'<w:shd w:val="clear" w:color="auto" w:fill="F2F2F2"/>'+TCMAR+'</w:tcPr>'+wPar(wRunSz(t,1))+'</w:tc></w:tr>';
+}
+function ktRow(stt,nd,pp,yc){
+  const c=(w,t,cen)=>'<w:tc><w:tcPr><w:tcW w:w="'+w+'" w:type="dxa"/>'+TCMAR+'</w:tcPr>'
+    +wPar(t?wRunSz(t):"",cen?'<w:pPr><w:jc w:val="center"/></w:pPr>':"")+'</w:tc>';
+  return '<w:tr>'+c(KTW[0],String(stt),1)+c(KTW[1],nd)+c(KTW[2],pp,1)+c(KTW[3],yc)+c(KTW[4],"")
+    +c(KTW[5],"□",1)+c(KTW[6],"□",1)+c(KTW[7],"")+c(KTW[8],"")+'</w:tr>';
+}
+// tiêu chí riêng thang chữa cháy — TCVN 6396-72
+const PCCC_CRIT=[
+ ["Nguồn điện chính và nguồn điện dự phòng cho thang chữa cháy","Thử","Có 2 nguồn độc lập; tự chuyển nguồn khi mất điện chính; thang tiếp tục vận hành - §5.2 TCVN 6396-72"],
+ ["Cáp cấp điện và cáp tín hiệu chịu lửa","Quan sát/Hồ sơ","Dùng cáp chống cháy, đi trong tuyến được bảo vệ - §5.2.3"],
+ ["Công tắc thang chữa cháy tại tầng phục vụ chữa cháy","Thử","Có nắp kính, ký hiệu thang chữa cháy; kích hoạt đúng chức năng - §5.8"],
+ ["Chế độ Giai đoạn 1 (hồi tầng phục vụ chữa cháy)","Thử","Thang tự hồi về tầng chữa cháy, mở cửa và dừng phục vụ trong thời gian quy định - §5.8.2"],
+ ["Chế độ Giai đoạn 2 (vận hành cho lực lượng chữa cháy)","Thử","Chỉ nhận lệnh trong cabin; cửa đóng/mở bằng lệnh giữ liên tục - §5.8.3"],
+ ["Thời gian di chuyển tới tầng cao nhất","Đo","Không quá 60 giây kể từ khi đóng cửa - §5.4"],
+ ["Kích thước cabin và tải trọng định mức","Đo","Tối thiểu theo §5.3 TCVN 6396-72 (đủ chở cáng và tổ chữa cháy)"],
+ ["Cửa tầng, sảnh thang và khả năng chống cháy khu vực bao che","Quan sát/Hồ sơ","Đạt giới hạn chịu lửa theo thiết kế PCCC được duyệt - §5.5"],
+ ["Thoát hiểm trên nóc cabin và phương tiện cứu hộ","Quan sát/Thử","Cửa thoát hiểm mở được từ nóc cabin; có thang, dụng cụ cứu hộ - §5.7"],
+ ["Chống nước xâm nhập hố thang, thoát nước hố pit","Quan sát","Có biện pháp thoát nước, thiết bị điện được bảo vệ - §5.6"],
+ ["Liên lạc khẩn cấp giữa cabin, tầng chữa cháy và phòng máy","Thử","Hệ thống liên lạc 2 chiều hoạt động, dùng được khi mất điện - §5.9"],
+ ["Biển báo, ký hiệu thang chữa cháy","Quan sát","Đầy đủ ký hiệu theo §5.10; nhìn rõ tại tầng phục vụ chữa cháy"]
+];
+// tiêu chí cơ bản cho các hạng mục bổ sung thường gặp
+const HM_CRIT={
+ "đà thép":[
+  ["Chủng loại, kích thước và số lượng đà thép/bản mã","Đo/Đối chiếu","Đúng bản vẽ và phụ lục hợp đồng được duyệt"],
+  ["Liên kết đà thép với kết cấu (bu lông nở, mối hàn)","Quan sát/Thử","Đủ số lượng, siết đủ lực; đường hàn ngấu, không khuyết tật"],
+  ["Cao độ, tim cốt và độ thẳng đứng/nằm ngang","Đo","Sai lệch trong dung sai thiết kế cho phép"],
+  ["Sơn chống gỉ, chống cháy (nếu có yêu cầu)","Quan sát/Hồ sơ","Phủ đều, đủ số lớp theo chỉ dẫn kỹ thuật"]],
+ "điều hòa":[
+  ["Chủng loại, công suất máy điều hòa phòng máy/cabin","Đối chiếu","Đúng model và công suất theo hợp đồng/thiết kế"],
+  ["Vị trí lắp đặt dàn nóng, dàn lạnh và giá đỡ","Quan sát","Chắc chắn, không cản trở vận hành và bảo trì thiết bị"],
+  ["Đường ống gas, bảo ôn và thoát nước ngưng","Quan sát/Thử","Kín, bảo ôn đầy đủ, thoát nước ngưng không rò rỉ"],
+  ["Cấp nguồn, aptomat bảo vệ riêng và tiếp địa","Đo/Thử","Đúng thiết kế điện; tiếp địa đạt yêu cầu"],
+  ["Chạy thử và nhiệt độ duy trì trong phòng máy","Thử/Đo","Duy trì nhiệt độ theo khuyến cáo nhà sản xuất thang máy"]],
+ "kiểm soát":[
+  ["Chủng loại thiết bị kiểm soát (đầu đọc thẻ/vân tay) và bộ điều khiển","Đối chiếu","Đúng model, số lượng theo hợp đồng"],
+  ["Lắp đặt đầu đọc trong cabin/tại sảnh tầng","Quan sát","Đúng vị trí thiết kế, chắc chắn, thẩm mỹ"],
+  ["Đấu nối tín hiệu với tủ điều khiển thang máy","Quan sát/Thử","Đúng sơ đồ; không ảnh hưởng chức năng an toàn của thang"],
+  ["Phân quyền theo tầng và theo người dùng","Thử","Quẹt thẻ/vân tay chỉ tới được tầng được phép"],
+  ["Chế độ khi mất điện và khi có tín hiệu báo cháy","Thử","Tự giải phóng kiểm soát, không cản trở hồi tầng khẩn cấp"],
+  ["Phần mềm quản lý, cấp/thu hồi thẻ và nhật ký truy cập","Thử","Hoạt động đúng; xuất được nhật ký"]],
+ "nội thất":[
+  ["Vật liệu ốp vách, trần, sàn cabin","Đối chiếu/Quan sát","Đúng mẫu duyệt; vật liệu khó cháy theo yêu cầu"],
+  ["Độ phẳng, khe hở mối ghép và hoàn thiện bề mặt","Đo/Quan sát","Phẳng, đều khe, không xước, không cong vênh"],
+  ["Tay vịn, gương, đèn chiếu sáng và quạt thông gió","Quan sát/Thử","Lắp chắc chắn, đúng vị trí; hoạt động bình thường"],
+  ["Bảng điều khiển (COP), hiển thị và nút bấm","Thử","Đầy đủ, sáng rõ, có chữ nổi/âm báo theo thiết kế"],
+  ["Tải trọng cho phép sau khi hoàn thiện nội thất","Tính toán/Hồ sơ","Khối lượng nội thất nằm trong giới hạn nhà sản xuất"]]
+};
+function ktPcccRows(){
+  let out=ktGroup("PCCC. YÊU CẦU RIÊNG ĐỐI VỚI THANG CHỮA CHÁY (TCVN 6396-72:2010 / EN 81-72)");
+  PCCC_CRIT.forEach((c,i)=>{out+=ktRow(i+1,c[0],c[1],c[2]);});
+  return out;
+}
+function ktHangMucRows(extras){
+  const groups=[];
+  (extras||[]).forEach(ex=>{
+    const nm=(ex.name||"").toLowerCase();
+    let key=null;
+    if(/đà thép|dà thép|bản mã|gối đôn|dầm thép/.test(nm))key="đà thép";
+    else if(/điều hòa|điều hoà|máy lạnh|air/.test(nm))key="điều hòa";
+    else if(/kiểm soát|thẻ|card|vân tay|access/.test(nm))key="kiểm soát";
+    else if(/nội thất|cabin|ốp|trang trí/.test(nm))key="nội thất";
+    if(key&&groups.indexOf(key)<0)groups.push(key);
+  });
+  if(!groups.length)return "";
+  let out="",n=0;
+  out+=ktGroup("HM. KIỂM TRA CÁC HẠNG MỤC BỔ SUNG KÈM THEO");
+  groups.forEach(k=>{
+    HM_CRIT[k].forEach(c=>{out+=ktRow(++n,c[0],c[1],c[2]);});
+  });
+  return out;
+}
+
 async function exportQuality(){
   const st=document.getElementById("q_status");st.textContent="Đang tạo bộ hồ sơ…";
   try{
@@ -1477,8 +1662,9 @@ async function exportQuality(){
     const zip=await JSZip.loadAsync(await resp.arrayBuffer());
     let doc=await zip.file("word/document.xml").async("string");
 
-    normElevs();
-    const els=selElevs();                       // thang trong đợt nghiệm thu này
+    normElevs();ensurePhases();
+    const phases=S.qPhases;
+    const els=selElevs();                        // toàn bộ thang được nghiệm thu (mọi đợt)
     const tong=S.qElevs.filter(e=>(e.name||"").trim()).length;
     const names=els.map(e=>e.name);
     const dsThang=names.join(", ")||"01";
@@ -1524,7 +1710,6 @@ async function exportQuality(){
       "{{DIA_DANH_HOA}}":(qv("q_diadanh")||"").toUpperCase()||"…",
       "{{NAM}}":qv("q_nam")||String(new Date().getFullYear())
     };
-    for(const k in map)doc=doc.split(k).join(xescQ(map[k]));
 
     // ----- các khối động: thành phần tham gia & chữ ký -----
     const parties=S.qParties.filter(p=>(p.role||"").trim()||(p.name||"").trim());
@@ -1545,16 +1730,42 @@ async function exportQuality(){
     doc=putBlock(doc,"{{BLOCK_KG}}",kg.map(pt=>wPar(wRun("- "+(pt.role||"")+": "+(pt.name||DOTL)),PLIST)).join("")||wPar(""));
     doc=putBlock(doc,"{{BLOCK_NN}}",nnRows(kg,nam),true);
 
-    // ----- bảng khối lượng nghiệm thu: 1 dòng / 1 thang trong đợt + hạng mục khác -----
-    for(let sec=1;sec<=7;sec++)
-      doc=putBlock(doc,"{{BLOCK_TB"+sec+"}}",tbRows(sec,els,(sec===1||sec===2)?S.qExtras:[]),true);
+    // ----- nhân bản phần I..VII cho từng đợt nghiệm thu -----
+    const mB="{{PHASE_BEGIN}}",mE="{{PHASE_END}}";
+    const iB=doc.indexOf(mB),iE=doc.indexOf(mE);
+    if(iB>=0&&iE>iB){
+      const pB=doc.lastIndexOf("<w:p",iB), pBe=doc.indexOf("</w:p>",iB)+6;
+      const pE=doc.lastIndexOf("<w:p",iE), pEe=doc.indexOf("</w:p>",iE)+6;
+      const head=doc.slice(0,pB), bodyTpl=doc.slice(pBe,pE), tail=doc.slice(pEe);
+      let body="";
+      phases.forEach((p,pi)=>{
+        const pe=phaseElevs(p), pNames=pe.map(e=>e.name).join(", ")||"…";
+        let x=bodyTpl;
+        for(let sec=1;sec<=7;sec++)
+          x=putBlock(x,"{{BLOCK_TB"+sec+"}}",tbRows(sec,pe,(sec===1||sec===2)?S.qExtras:[]),true);
+        // tiêu chí riêng thang chữa cháy: chỉ khi đợt này có thang PCCC
+        x=putBlock(x,"{{BLOCK_KT_PCCC}}",pe.some(e=>e.type==="pccc")?ktPcccRows():"",true);
+        x=putBlock(x,"{{BLOCK_KT_HM}}",ktHangMucRows(S.qExtras),true);
+        // nếu đợt này không có thang chữa cháy thì ghi rõ không áp dụng
+        if(!pe.some(e=>e.type==="pccc"))
+          x=x.split("Chuyển sang chế độ vận hành ưu tiên cho lực lượng cứu hỏa")
+             .join("Không áp dụng - đợt nghiệm thu này không có thang chữa cháy");
+        x=x.split("{{DOT}}").join(xescQ(p.no||pad2(pi+1)));
+        x=x.split("{{DS_THANG}}").join(xescQ(pNames));
+        if(phases.length>1)
+          x=x.replace(/(<w:t[^>]*>)PHẦN ([IVX]+)(<\/w:t>)/g,
+                      (m,a2,r,c2)=>a2+"PHẦN "+r+" – "+xescQ((p.label||"ĐỢT "+p.no).toUpperCase())+c2);
+        body+=x;
+      });
+      doc=head+body+tail;
+    }
+    // danh mục hồ sơ: gộp đầy đủ mọi đợt
+    doc=putBlock(doc,"{{BLOCK_DM}}",buildDanhMuc(map["{{MA_HS}}"],phases),true);
 
 
-    // ----- thang chữa cháy: nếu đợt này không có thang PCCC thì ghi rõ không áp dụng -----
-    if(!coPCCC)
-      doc=doc.split("Chuyển sang chế độ vận hành ưu tiên cho lực lượng cứu hỏa")
-             .join("Không áp dụng - thang trong đợt nghiệm thu không phải thang chữa cháy");
 
+
+    for(const k in map)doc=doc.split(k).join(xescQ(map[k]));
     zip.file("word/document.xml",doc);
     const blob=await zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",compression:"DEFLATE"});
     const tag=(qv("q_sohd")||congTrinh||"ho_so").replace(/[^\w-]/g,"_").slice(0,40);
@@ -1716,7 +1927,7 @@ document.getElementById("baseline2").onchange=function(){document.getElementById
 document.getElementById("holidays").oninput=function(){document.getElementById("holidays2").value=this.value;};
 
 autoFillHolidays(true); // tự liệt kê ngày nghỉ lễ VN ngay khi mở
-renderSigners();renderSteps();renderFactors();renderQElevs();renderQParties();renderQExtras();pushForm();showLogo();
+renderSigners();renderSteps();renderFactors();renderQElevs();renderQParties();renderQExtras();renderQPhases();pushForm();showLogo();
 showScreen("screenContract"); // bắt đầu ở bước nhập hợp đồng
 </script>
 </body>
