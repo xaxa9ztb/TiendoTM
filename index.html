@@ -395,6 +395,7 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font
       <div class="f"><label>Năm lập hồ sơ</label><input id="q_nam"></div>
       <div class="f"><label>Quyển số</label><input id="q_quyenso" value="01/01"></div>
       <div class="f"><label>Mã hiệu hồ sơ (tiền tố số tài liệu)</label><input id="q_mahs" value="SCH" placeholder="VD: SCH → SCH/YCNT/VLĐV/01"></div>
+      <div class="f"><label>Nhà sản xuất thiết bị</label><input id="q_nhasx" placeholder="VD: Schindler"></div>
     </div>
   </div>
 
@@ -431,7 +432,7 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font
     <p class="hint">Khai báo <b>toàn bộ thang của dự án</b>, sau đó chia các <b>đợt nghiệm thu</b> ở mục D3 (1 thang, một số thang, hay tất cả). Loại thang và phòng máy được ghi vào bảng khối lượng của mọi biên bản.</p>
     <div style="overflow-x:auto">
     <table class="edit" style="margin-top:8px;min-width:1050px">
-      <thead><tr><th style="width:28px">#</th><th style="width:90px">Tên thang</th><th>Vị trí</th><th style="width:150px">Loại thang</th><th style="width:135px">Phòng máy</th><th style="width:130px">Model</th><th style="width:80px">Tải (kg)</th><th style="width:80px">Số người</th><th style="width:80px">Vận tốc</th><th style="width:90px">Điểm dừng</th><th style="width:32px"></th></tr></thead>
+      <thead><tr><th style="width:28px">#</th><th style="width:90px">Tên thang</th><th>Vị trí</th><th style="width:150px">Loại thang</th><th style="width:135px">Phòng máy</th><th style="width:130px">Model</th><th style="width:82px">Tải (kg)<br><span style="font-weight:400;text-transform:none">cao nâng (m)</span></th><th style="width:82px">Số người<br><span style="font-weight:400;text-transform:none">góc nghiêng</span></th><th style="width:80px">Vận tốc</th><th style="width:92px">Điểm dừng<br><span style="font-weight:400;text-transform:none">bề rộng bậc</span></th><th style="width:32px"></th></tr></thead>
       <tbody id="qelevsbody"></tbody>
     </table>
     </div>
@@ -1253,13 +1254,16 @@ function colName(n){let s="";while(n>0){const m=(n-1)%26;s=String.fromCharCode(6
 ================================================================ */
 const qv=id=>{const el=document.getElementById(id);return el?el.value.trim():"";};
 /* ---------- Danh sách thang: loại thang / phòng máy / phạm vi nghiệm thu ---------- */
-const ELEV_TYPES={khach:"Thang chở khách",pccc:"Thang chữa cháy (PCCC)",hang:"Thang tải hàng",benh:"Thang giường bệnh"};
-function newElev(name){return {name:name||"",pos:"",type:"khach",room:"khong",model:"",load:"",persons:"",speed:"",stops:"",sel:true};}
+const ELEV_TYPES={khach:"Thang chở khách",pccc:"Thang chữa cháy (PCCC)",hang:"Thang tải hàng",benh:"Thang giường bệnh",cuon:"Thang cuốn",bangtai:"Băng tải chở người"};
+const isCuon=e=>e.type==="cuon"||e.type==="bangtai";
+const unitPrefix=e=>e.type==="cuon"?"Thang cuốn":(e.type==="bangtai"?"Băng tải chở người":"Thang máy");
+function newElev(name){return {name:name||"",pos:"",type:"khach",room:"khong",model:"",load:"",persons:"",speed:"",stops:"",rise:"",angle:"",stepw:"",sel:true};}
 // chuyển dữ liệu cũ (mảng chuỗi) sang dạng đối tượng
 function normElevs(){S.qElevs=(S.qElevs||[]).map(e=>typeof e==="string"?newElev(e):Object.assign(newElev(),e));}
 function selElevs(){ensurePhases();const set=[];S.qPhases.forEach(p=>phaseElevs(p).forEach(e=>{if(set.indexOf(e)<0)set.push(e);}));return set;}
 function elevLabel(e){
   const t=ELEV_TYPES[e.type]||ELEV_TYPES.khach;
+  if(isCuon(e))return t;                       // thang cuốn không có khái niệm phòng máy
   return t+(e.room==="co"?", có phòng máy":", không phòng máy (MRL)");
 }
 function renderQElevs(){
@@ -1271,12 +1275,17 @@ function renderQElevs(){
       <td><input value="${esc(e.name)}" placeholder="P1" onchange="S.qElevs[${i}].name=this.value;updateQCount()"></td>
       <td><input value="${esc(e.pos)}" placeholder="Vị trí, VD: Khu Showroom" onchange="S.qElevs[${i}].pos=this.value"></td>
       <td><select onchange="S.qElevs[${i}].type=this.value">${Object.keys(ELEV_TYPES).map(k=>opt(k,e.type,ELEV_TYPES[k])).join("")}</select></td>
-      <td><select onchange="S.qElevs[${i}].room=this.value">${opt("khong",e.room,"Không phòng máy")}${opt("co",e.room,"Có phòng máy")}</select></td>
+      <td>${isCuon(e)?'<span style="font-size:11.5px;color:var(--muted)">—</span>':`<select onchange="S.qElevs[${i}].room=this.value">${opt("khong",e.room,"Không phòng máy")}${opt("co",e.room,"Có phòng máy")}</select>`}</td>
       <td><input value="${esc(e.model)}" placeholder="Model" onchange="S.qElevs[${i}].model=this.value"></td>
-      <td><input value="${esc(e.load)}" placeholder="kg" style="width:70px" onchange="S.qElevs[${i}].load=this.value"></td>
-      <td><input value="${esc(e.persons)}" placeholder="người" style="width:70px" onchange="S.qElevs[${i}].persons=this.value"></td>
-      <td><input value="${esc(e.speed)}" placeholder="m/s" style="width:70px" onchange="S.qElevs[${i}].speed=this.value"></td>
-      <td><input value="${esc(e.stops)}" placeholder="điểm dừng" style="width:80px" onchange="S.qElevs[${i}].stops=this.value"></td>
+      ${isCuon(e)
+        ?`<td><input value="${esc(e.rise)}" placeholder="cao nâng m" style="width:70px" onchange="S.qElevs[${i}].rise=this.value"></td>
+          <td><input value="${esc(e.angle)}" placeholder="góc °" style="width:70px" onchange="S.qElevs[${i}].angle=this.value"></td>
+          <td><input value="${esc(e.speed)}" placeholder="m/s" style="width:70px" onchange="S.qElevs[${i}].speed=this.value"></td>
+          <td><input value="${esc(e.stepw)}" placeholder="bậc mm" style="width:80px" onchange="S.qElevs[${i}].stepw=this.value"></td>`
+        :`<td><input value="${esc(e.load)}" placeholder="kg" style="width:70px" onchange="S.qElevs[${i}].load=this.value"></td>
+          <td><input value="${esc(e.persons)}" placeholder="người" style="width:70px" onchange="S.qElevs[${i}].persons=this.value"></td>
+          <td><input value="${esc(e.speed)}" placeholder="m/s" style="width:70px" onchange="S.qElevs[${i}].speed=this.value"></td>
+          <td><input value="${esc(e.stops)}" placeholder="điểm dừng" style="width:80px" onchange="S.qElevs[${i}].stops=this.value"></td>`}
       <td class="x"><button class="icb" title="Xóa" onclick="S.qElevs.splice(${i},1);renderQElevs()">✕</button></td>`;
     tb.appendChild(tr);
   });
@@ -1331,11 +1340,18 @@ function tbRows(sec,elevs,extras){
     const desc=[];
     const pre=tbPrefix(sec,e);if(pre)desc.push(pre);
     desc.push("- "+elevLabel(e)+(e.model?" "+e.model:""));
-    if(e.load)desc.push("- Tải trọng: "+e.load+" kg"+(e.persons?" - "+e.persons+" người":""));
-    if(e.speed)desc.push("- Vận tốc: "+e.speed+" m/s");
-    if(e.stops)desc.push("- Số điểm dừng: "+e.stops);
+    if(isCuon(e)){
+      if(e.rise)desc.push("- Chiều cao nâng: "+e.rise+" m");
+      if(e.angle)desc.push("- Góc nghiêng: "+e.angle+"°");
+      if(e.speed)desc.push("- Tốc độ: "+e.speed+" m/s");
+      if(e.stepw)desc.push("- Bề rộng bậc thang: "+e.stepw+" mm");
+    }else{
+      if(e.load)desc.push("- Tải trọng: "+e.load+" kg"+(e.persons?" - "+e.persons+" người":""));
+      if(e.speed)desc.push("- Vận tốc: "+e.speed+" m/s");
+      if(e.stops)desc.push("- Số điểm dừng: "+e.stops);
+    }
     out+="<w:tr>"+tbCell(TBW[0],[String(k)],1)
-      +tbCell(TBW[1],["Thang máy "+e.name+(e.pos?" ("+e.pos+")":"")])
+      +tbCell(TBW[1],[unitPrefix(e)+" "+e.name+(e.pos?" ("+e.pos+")":"")])
       +tbCell(TBW[2],desc)
       +tbCell(TBW[3],["Bộ"],1)+tbCell(TBW[4],["01"],1)
       +tbCell(TBW[5],[e.model?e.model.split(/\s+/)[0]:""],1)
@@ -1389,6 +1405,8 @@ function prefillQuality(){
   if(q&&+q[1]>=1&&S.qElevs.filter(e=>(e.name||"").trim()).length<=1){
     S.qElevs=Array.from({length:+q[1]},(_,i)=>newElev("P"+(i+1)));
   }
+  const brand=eq.match(/(schindler|mitsubishi|kone|otis|hyundai|fuji\w*|thyssen\w*|hitachi|toshiba)/i);
+  if(brand)set("q_nhasx",brand[0]);
   const model=eq.match(/(schindler|mitsubishi|kone|otis|hyundai|fuji\w*|thyssen\w*|hitachi|toshiba)[\w\s-]{0,12}/i);
   const load=eq.match(/(\d{3,4})\s*kg/i), speed=eq.match(/(\d(?:[.,]\d{1,2})?)\s*m\/s/i), stops=eq.match(/(\d{1,2})\s*điểm dừng/i);
   S.qElevs.forEach(e=>{
@@ -1668,6 +1686,100 @@ function ktHangMucRows(extras){
   return out;
 }
 
+/* ---------- Tiêu chuẩn áp dụng: sinh theo loại thiết bị có trong hồ sơ ---------- */
+const TC_CHUNG=[
+ "Luật Xây dựng số 50/2014/QH13 và các văn bản sửa đổi, bổ sung;",
+ "Nghị định 06/2021/NĐ-CP ngày 26/01/2021 quy định chi tiết một số nội dung về quản lý chất lượng, thi công xây dựng và bảo trì công trình xây dựng;",
+ "Thông tư 10/2021/TT-BXD ngày 25/8/2021 hướng dẫn một số điều và biện pháp thi hành Nghị định số 06/2021/NĐ-CP;",
+ "Thông tư 16/2021/TT-BXD ngày 20/6/2021 về an toàn trong thi công xây dựng;",
+ "TCVN 4055:2012 – Công trình xây dựng – Tổ chức thi công;",
+ "TCVN 5639:1991 – Nghiệm thu thiết bị đã lắp đặt xong;",
+ "TCVN 9206:2012 – Đặt thiết bị điện trong nhà ở và công trình công cộng;"
+];
+const TC_THANGMAY=[
+ "TCVN 6396-20:2017 (EN 81-20:2014) – Yêu cầu an toàn về cấu tạo và lắp đặt thang máy – Phần 20: Thang máy chở người và hàng;",
+ "TCVN 6396-50:2017 (EN 81-50:2014) – Yêu cầu về thiết kế, tính toán, kiểm tra và thử nghiệm các bộ phận của thang máy;",
+ "QCVN 02:2019/BLĐTBXH – Quy chuẩn kỹ thuật quốc gia về an toàn lao động đối với thang máy;"
+];
+const TC_PCCC=["TCVN 6396-72:2010 (EN 81-72:2003) – Thang máy chữa cháy;"];
+const TC_CUON=[
+ "TCVN 6397-1:2010 (EN 115-1:2008) – Thang cuốn và băng tải chở người – Yêu cầu an toàn về cấu tạo và lắp đặt;",
+ "QCVN 11:2012/BLĐTBXH – Quy chuẩn kỹ thuật quốc gia về an toàn lao động đối với thang cuốn và băng tải chở người;"
+];
+// danh mục "+ tiêu chuẩn" trong Biên bản nghiệm thu — theo thiết bị của từng đợt
+function tcNtList(els,nhaSX){
+  const has=t=>els.some(e=>e.type===t);
+  const coMay=els.some(e=>["khach","pccc","hang","benh"].indexOf(e.type)>=0);
+  const coCuon=els.some(isCuon);
+  let L=["Nghị định 06/2021/NĐ-CP ngày 26/01/2021 quy định chi tiết một số nội dung về quản lý chất lượng, thi công xây dựng và bảo trì công trình xây dựng;",
+         "Thông tư 10/2021/TT-BXD ngày 25/08/2021 hướng dẫn một số điều và biện pháp thi hành Nghị định số 06/2021/NĐ-CP;",
+         "Thông tư 16/2021/TT-BXD ngày 20/06/2021 về an toàn trong thi công xây dựng;",
+         "TCVN 4055:2012 - Công trình xây dựng - Tổ chức thi công;",
+         "TCVN 5639:1991 - Nghiệm thu thiết bị đã lắp đặt xong;",
+         "TCVN 9206:2012 - Đặt thiết bị điện trong nhà ở và công trình công cộng;"];
+  if(coMay)L=L.concat([
+    "TCVN 6396-20:2017 (EN 81-20:2014) - Yêu cầu an toàn về cấu tạo và lắp đặt thang máy - Phần 20: Thang máy chở người và hàng;",
+    "TCVN 6396-50:2017 (EN 81-50:2014) - Yêu cầu về thiết kế, tính toán, kiểm tra và thử nghiệm các bộ phận của thang máy;"]);
+  if(has("pccc"))L.push("TCVN 6396-72:2010 (EN 81-72:2003) - Thang máy chữa cháy;");
+  if(coCuon)L=L.concat([
+    "TCVN 6397-1:2010 (EN 115-1:2008) - Thang cuốn và băng tải chở người - Yêu cầu an toàn về cấu tạo và lắp đặt;",
+    "QCVN 11:2012/BLĐTBXH - Quy chuẩn kỹ thuật quốc gia về an toàn lao động đối với thang cuốn và băng tải chở người;"]);
+  L.push("Các tiêu chuẩn hiện hành khác có liên quan và tài liệu kỹ thuật của nhà sản xuất "+(nhaSX||"…")+".");
+  return L.map(t=>wPar(wRun("+ "+t),PLIST)).join("");
+}
+function tcList(els,nhaSX,maBanVe){
+  const has=t=>els.some(e=>e.type===t);
+  const coMay=els.some(e=>["khach","pccc","hang","benh"].indexOf(e.type)>=0);
+  const coCuon=has("cuon")||has("bangtai");
+  let L=TC_CHUNG.slice();
+  if(coMay)L=L.concat(TC_THANGMAY);
+  if(has("pccc"))L=L.concat(TC_PCCC);
+  if(coCuon)L=L.concat(TC_CUON);
+  L.push("ISO 9001:2015, ISO 45001:2018, ISO 14001:2015 – Hệ thống quản lý chất lượng, an toàn và môi trường của nhà sản xuất;");
+  L.push("Hồ sơ thiết kế bản vẽ thi công được phê duyệt: "+(maBanVe||"…")+";");
+  L.push("Tài liệu kỹ thuật, catalogue và hướng dẫn lắp đặt của nhà sản xuất "+(nhaSX||"…")+".");
+  return L.map((t,i)=>wPar(wRun((i+1)+". "+t),PLIST)).join("");
+}
+/* ---------- Tiêu chí kiểm tra riêng cho thang cuốn (TCVN 6397-1:2010 / EN 115-1) ---------- */
+const CUON_LAPDAT=[
+ ["Vị trí, cao độ và cân chỉnh giàn (truss), gối đỡ hai đầu","Đo/Quan sát","Đúng bản vẽ; gối đỡ đủ diện tích tựa, có đệm chống rung, kết cấu đỡ đạt tải thiết kế"],
+ ["Góc nghiêng của thang cuốn","Đo","≤ 30°; cho phép tới 35° khi chiều cao nâng ≤ 6 m và tốc độ ≤ 0,50 m/s – TCVN 6397-1:2010"],
+ ["Chiều cao nâng và chiều dài tổng thể","Đo","Đúng thiết kế được duyệt; sai lệch trong dung sai nhà sản xuất"],
+ ["Bề rộng danh nghĩa của bậc thang / tấm nền","Đo","Trong khoảng 0,58 m đến 1,10 m – TCVN 6397-1:2010"],
+ ["Chiều cao thông thuỷ phía trên bậc thang","Đo","≥ 2,30 m trên toàn bộ hành trình"],
+ ["Khe hở giữa bậc thang và tấm chắn chân (skirt)","Đo","≤ 4 mm mỗi bên và tổng hai bên ≤ 7 mm"],
+ ["Khe hở giữa các bậc thang liền kề","Đo","≤ 6 mm tại vùng hành khách đứng"],
+ ["Lan can, tấm ốp, tay vịn: độ vững chắc và hoàn thiện","Quan sát/Thử","Không rung lắc, không cạnh sắc; kính (nếu có) là kính an toàn"],
+ ["Tấm chắn chống kẹp tại đầu lan can và chổi chắn chân","Quan sát","Lắp đầy đủ, đúng vị trí theo thiết kế nhà sản xuất"],
+ ["Lược (comb) hai đầu và tấm sàn lên/xuống","Quan sát/Đo","Răng lược đủ, không gãy; ăn khớp rãnh bậc; tấm sàn phẳng, chống trượt"],
+ ["Chiếu sáng khu vực lên/xuống và chiếu sáng bậc thang","Đo/Quan sát","Đủ độ rọi theo thiết kế; đèn hoạt động bình thường"],
+ ["Tủ điện, đi dây, tiếp địa và bảo vệ quá dòng","Đo/Quan sát","Đúng sơ đồ; điện trở tiếp địa đạt yêu cầu; có aptomat bảo vệ riêng"]
+];
+const CUON_VANHANH=[
+ ["Tốc độ danh định của bậc thang","Đo","≤ 0,75 m/s; ≤ 0,50 m/s khi góc nghiêng trên 30° – TCVN 6397-1:2010"],
+ ["Đồng bộ tốc độ tay vịn với bậc thang","Đo","Sai lệch không quá ±2% so với tốc độ bậc thang"],
+ ["Nút dừng khẩn cấp tại đầu trên và đầu dưới","Thử","Có nắp bảo vệ, dễ tiếp cận; nhấn là thang dừng an toàn"],
+ ["Thiết bị bảo vệ lược (comb) khi có vật kẹt","Thử","Thang dừng ngay khi lược bị đẩy/kẹt"],
+ ["Thiết bị bảo vệ đứt hoặc giãn xích bậc thang","Thử","Kích hoạt làm dừng thang; không tự khởi động lại"],
+ ["Thiết bị bảo vệ quá tốc và chống đảo chiều ngoài ý muốn","Thử","Dừng thang khi vượt 1,2 lần tốc độ danh định hoặc khi đảo chiều tự phát"],
+ ["Thiết bị bảo vệ đứt/chùng tay vịn và bảo vệ điểm vào tay vịn","Thử","Dừng thang hoặc báo động khi có vật kẹt tại điểm vào tay vịn"],
+ ["Thiết bị bảo vệ bậc thang bị chìm/thiếu bậc","Thử","Dừng thang trước khi bậc lỗi tới vùng lược"],
+ ["Phanh vận hành: quãng đường dừng khi không tải và có tải","Đo","Trong dải cho phép theo tốc độ danh định – TCVN 6397-1:2010"],
+ ["Chạy thử hai chiều lên/xuống, không tải và có tải","Thử","Êm, không rung ồn bất thường, không trượt bậc"],
+ ["Khởi động bằng chìa khoá và tự khởi động bằng cảm biến (nếu có)","Thử","Đúng chức năng; có tín hiệu cảnh báo trước khi chạy"],
+ ["Liên động tín hiệu báo cháy của công trình","Thử","Dừng theo kịch bản PCCC được duyệt; dừng êm, an toàn cho hành khách"],
+ ["Biển báo, chỉ dẫn an toàn cho hành khách","Quan sát","Đầy đủ, đúng vị trí, dễ nhìn tại hai đầu thang"],
+ ["Hồ sơ kiểm định kỹ thuật an toàn","Hồ sơ","Kiểm định theo QCVN 11:2012/BLĐTBXH trước khi đưa vào sử dụng"]
+];
+function ktCuonRows(kind){
+  const L=kind==="lapdat"?CUON_LAPDAT:CUON_VANHANH;
+  let out=ktGroup("TC. "+(kind==="lapdat"
+      ?"YÊU CẦU LẮP ĐẶT THANG CUỐN / BĂNG TẢI CHỞ NGƯỜI (TCVN 6397-1:2010 / EN 115-1)"
+      :"KIỂM TRA VẬN HÀNH VÀ THIẾT BỊ AN TOÀN THANG CUỐN (TCVN 6397-1:2010 / EN 115-1)"));
+  L.forEach((c,i)=>{out+=ktRow(i+1,c[0],c[1],c[2]);});
+  return out;
+}
+
 async function exportQuality(){
   const st=document.getElementById("q_status");st.textContent="Đang tạo bộ hồ sơ…";
   try{
@@ -1698,7 +1810,7 @@ async function exportQuality(){
       "{{HANG_MUC}}":hangMuc,
       "{{HANG_MUC_HOA}}":hangMuc.toUpperCase(),
       "{{MO_TA_THANG}}":qv("q_motathang")||(els.length
-          ?"("+els.map(e=>"Thang máy "+e.name+(e.pos?" – "+e.pos:"")+" – "+elevLabel(e)).join("; ")
+          ?"("+els.map(e=>unitPrefix(e)+" "+e.name+(e.pos?" – "+e.pos:"")+(isCuon(e)?"":" – "+elevLabel(e))).join("; ")
             +(tong&&els.length<tong?" — nghiệm thu "+pad2(els.length)+"/"+pad2(tong)+" thang máy của dự án":"")+")":""),
       "{{CHU_DAU_TU}}":pName(/chủ đầu tư/i)||dash,
       "{{TVGS}}":pName(/tư vấn|giám sát/i)||dash,
@@ -1721,6 +1833,7 @@ async function exportQuality(){
       "{{THANG1}}":names[0]||"01",
       "{{THANG2}}":names[1]||names[0]||"02",
       "{{MA_HS}}":qv("q_mahs")||"HS",
+      "{{NHA_SX}}":qv("q_nhasx")||"…",
       "{{QUYEN_SO}}":qv("q_quyenso")||"01/01",
       "{{DIA_DANH_HOA}}":(qv("q_diadanh")||"").toUpperCase()||"…",
       "{{NAM}}":qv("q_nam")||String(new Date().getFullYear())
@@ -1776,8 +1889,15 @@ async function exportQuality(){
         for(let sec=1;sec<=7;sec++)
           x=putBlock(x,"{{BLOCK_TB"+sec+"}}",tbRows(sec,pe,(sec===1||sec===2)?S.qExtras:[]),true);
         // tiêu chí riêng thang chữa cháy: chỉ khi đợt này có thang PCCC
-        x=putBlock(x,"{{BLOCK_KT_PCCC}}",pe.some(e=>e.type==="pccc")?ktPcccRows():"",true);
-        x=putBlock(x,"{{BLOCK_KT_HM}}",ktHangMucRows(S.qExtras),true);
+        const peCuon=pe.some(isCuon);
+        x=putBlock(x,"{{BLOCK_KT_PCCC}}",
+            (pe.some(e=>e.type==="pccc")?ktPcccRows():"")+(peCuon?ktCuonRows("vanhanh"):""),true);
+        x=putBlock(x,"{{BLOCK_TCNT}}",tcNtList(pe,qv("q_nhasx")));
+        x=putBlock(x,"{{BLOCK_KT_HM}}",
+            (peCuon?ktCuonRows("lapdat"):"")+ktHangMucRows(S.qExtras),true);
+        // ô "Tiêu chuẩn thi công – nghiệm thu áp dụng" trong Biên bản kiểm tra
+        if(peCuon)x=x.split("TCVN 6396-50:2017 (EN 81-50:2014).")
+                     .join("TCVN 6396-50:2017 (EN 81-50:2014); TCVN 6397-1:2010 (EN 115-1:2008); QCVN 11:2012/BLĐTBXH.");
         // nếu đợt này không có thang chữa cháy thì ghi rõ không áp dụng
         if(!pe.some(e=>e.type==="pccc"))
           x=x.split("Chuyển sang chế độ vận hành ưu tiên cho lực lượng cứu hỏa")
@@ -1821,6 +1941,8 @@ async function exportQuality(){
       zip.file(relsPath,relsXml);
       zip.file("[Content_Types].xml",ctXml);
     }
+    // danh mục tiêu chuẩn áp dụng: theo loại thiết bị thực có trong hồ sơ
+    doc=putBlock(doc,"{{BLOCK_TCAD}}",tcList(els,qv("q_nhasx"),qv("q_mabanve")));
     // danh mục hồ sơ: gộp đầy đủ mọi đợt
     doc=putBlock(doc,"{{BLOCK_DM}}",buildDanhMuc(map["{{MA_HS}}"],phases),true);
 
