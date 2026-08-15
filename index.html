@@ -1282,7 +1282,13 @@ function renderQElevs(){
   });
   updateQCount();
 }
-function addQElev(){normElevs();S.qElevs.push(newElev());renderQElevs();}
+function addQElev(){
+  normElevs();S.qElevs.push(newElev());
+  // nếu chỉ có 1 đợt thì thang mới mặc định thuộc đợt đó (tránh bị bỏ sót)
+  ensurePhases();
+  if(S.qPhases.length===1)S.qPhases[0].ids.push(S.qElevs.length-1);
+  renderQElevs();renderQPhases();
+}
 function updateQCount(){
   normElevs();
   const tot=S.qElevs.filter(e=>(e.name||"").trim()).length;
@@ -1291,9 +1297,13 @@ function updateQCount(){
   if(!sc)return;
   ensurePhases();
   const parts=S.qPhases.map(p=>(p.label||"Đợt "+p.no)+": "+(phaseElevs(p).map(e=>e.name).join(", ")||"(chưa chọn thang)"));
+  const inAny=[];S.qPhases.forEach(p=>(p.ids||[]).forEach(i=>{if(inAny.indexOf(i)<0)inAny.push(i);}));
+  const missing=S.qElevs.map((e,i)=>i).filter(i=>(S.qElevs[i].name||"").trim()&&inAny.indexOf(i)<0)
+                        .map(i=>S.qElevs[i].name);
   sc.textContent=!tot?"":(S.qPhases.length===1&&phaseElevs(S.qPhases[0]).length===tot
     ?"Nghiệm thu 01 đợt cho TOÀN BỘ "+pad2(tot)+" thang máy của dự án."
-    :"Bộ hồ sơ gồm "+pad2(S.qPhases.length)+" đợt — "+parts.join(" · "));
+    :"Bộ hồ sơ gồm "+pad2(S.qPhases.length)+" đợt — "+parts.join(" · "))
+    +(missing.length?"  ⚠ Chưa xếp đợt cho: "+missing.join(", "):"");
 }
 /* ---------- sinh dòng bảng khối lượng nghiệm thu ---------- */
 const TBW=[520,1714,3229,569,679,1049,946,932];
@@ -1476,7 +1486,12 @@ function nnRows(list,nam){
 function putBlock(doc,tok,xml,inRow){
   const tag=inRow?"w:tr":"w:p";
   const re=new RegExp("<"+tag+"\\b[^>]*>(?:(?!</"+tag+">)[\\s\\S])*?"+tok.replace(/[{}]/g,"\\$&")+"(?:(?!</"+tag+">)[\\s\\S])*?</"+tag+">","g");
-  return doc.replace(re,()=>xml);
+  // marker có thể mang ngắt section (sectPr) — phải giữ lại để các biên bản
+  // vẫn bắt đầu ở trang mới và đúng header/footer của từng section
+  return doc.replace(re,m=>{
+    const sp=m.match(/<w:sectPr\b[\s\S]*?<\/w:sectPr>/);
+    return xml+(sp&&!inRow?"<w:p><w:pPr>"+sp[0]+"</w:pPr></w:p>":"");
+  });
 }
 
 /* ---------- Đợt nghiệm thu: 1 bộ hồ sơ gồm đầy đủ các đợt ---------- */
