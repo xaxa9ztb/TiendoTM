@@ -65,7 +65,10 @@ input[type=checkbox],input[type=radio]{width:auto}
 .panel h2{font-family:var(--disp);font-stretch:85%;font-weight:800;font-size:19px;color:var(--navy);display:flex;align-items:center;gap:10px;margin-bottom:6px}
 .panel h2 .no{font-family:var(--mono);font-size:12px;font-weight:500;color:#fff;background:var(--red);border-radius:3px;padding:2px 7px}
 .panel .hint{color:var(--muted);font-size:12.5px;margin-bottom:18px}
+/* min-width:auto của grid item khiến ô ngày (bề rộng tối thiểu lớn) phình cột */
 .grid{display:grid;gap:14px}
+.grid>*,.party .phead>*{min-width:0}
+input,select,textarea{max-width:100%}
 .g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}.g4{grid-template-columns:repeat(4,1fr)}
 @media(max-width:820px){.g2,.g3,.g4{grid-template-columns:1fr}}
 .f label{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:5px}
@@ -142,6 +145,46 @@ table.edit td.x{width:36px;text-align:center}
 .warn{background:#fff6e5;border:1px solid #f0c36d;border-radius:6px;padding:10px 14px;font-size:12.5px;color:#7a5200;margin-bottom:16px}
 .hide{display:none!important}
 footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font-family:var(--mono)}
+
+/* bảng rộng: cuộn ngang trong khung, không kéo lệch cả trang */
+.tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+/* ===== Mobile ===== */
+@media(max-width:760px){
+  body{font-size:15px}
+  .topbar{padding:11px 14px;gap:8px}
+  .topbar .mark{font-size:17px}
+  .topbar .sub{font-size:11px;flex-basis:100%;line-height:1.4}
+  .stepper{margin-left:0;width:100%}
+  .stepper button{flex:1;padding:9px 4px;font-size:11.5px}
+  .wrap{margin:16px auto 56px;padding:0 12px}
+  .panel{padding:16px 14px;margin-bottom:14px}
+  .panel h2{font-size:16px;flex-wrap:wrap;line-height:1.35}
+  .panel .hint{margin-bottom:14px}
+  .party{padding:12px 11px}
+  .choosecard{padding:16px}
+  .drop{padding:22px 14px}
+  input,select,textarea{font-size:16px;padding:9px 10px}   /* ≥16px: iOS không tự phóng to */
+  input[type=checkbox],input[type=radio]{width:20px;height:20px}
+  .btn{padding:12px 18px;font-size:14px}
+  .btn.sm{padding:8px 12px;font-size:13px}
+  .icb{font-size:20px;padding:6px 10px;min-width:34px;min-height:34px}
+  .party .chk{white-space:normal;font-size:12px;display:inline-flex;align-items:center;gap:6px;
+              min-height:34px;padding:2px 0}
+  .party .chk input{margin-right:0}
+  /* bảng chọn bước: xếp dọc cho dễ chạm thay vì 3 cột chật */
+  table.edit.steps thead{display:none}
+  table.edit.steps tbody,table.edit.steps tr,table.edit.steps td{display:block;width:auto}
+  table.edit.steps tr{border-bottom:1px solid var(--line);padding:8px 0}
+  table.edit.steps td{border:none;padding:1px 0}
+  table.edit.steps td:first-child{float:left;width:30px;font-family:var(--mono);
+    color:var(--muted);font-weight:700;padding-top:6px}
+  table.edit.steps td:nth-child(2){margin-left:30px}
+  table.edit.steps td:last-child{margin-left:30px;padding-bottom:4px}
+  .emailbox{padding:14px;max-height:60vh}
+  .sheetbox{padding:10px}
+  .signers{grid-template-columns:1fr}
+}
 
 @media print{
   @page{size:A3 landscape;margin:8mm}
@@ -297,19 +340,19 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font
     </div>
     <h2 style="font-size:15px"><span class="no" style="background:var(--navy)">I</span>Yếu tố ảnh hưởng tiến độ hàng về (thuộc giai đoạn I)</h2>
     <p class="hint">Ví dụ: phê duyệt nội thất/cabin, khách hàng yêu cầu giãn tiến độ hàng về… Mỗi yếu tố chọn <b>Số ngày</b> (cộng thêm ngày) hoặc <b>Mốc ngày</b> (chờ đến ngày đó), và đặt <b>trước</b> hay <b>sau</b> bước sản xuất.</p>
-    <table class="edit" style="margin-top:8px">
+    <div class="tblwrap"><table class="edit" style="margin-top:8px;min-width:520px">
       <thead><tr><th style="width:30px">#</th><th>Yếu tố ảnh hưởng</th><th style="width:96px">Loại</th><th style="width:132px">Giá trị</th><th style="width:118px">Vị trí</th><th style="width:32px"></th></tr></thead>
       <tbody id="factorsbody"></tbody>
-    </table>
+    </table></div>
     <div class="row" style="margin-top:10px">
       <button class="btn gho sm" onclick="addFactor()">+ Thêm yếu tố</button>
       <span style="margin-left:auto" class="sum">Tổng ảnh hưởng hàng về: <span id="factorsum">0</span> ngày</span>
     </div>
     <h2 style="font-size:15px;margin-top:22px"><span class="no" style="background:var(--navy)">II</span>Các bước lắp đặt (thêm/bớt được)</h2>
-    <table class="edit" style="margin-top:10px">
+    <div class="tblwrap"><table class="edit" style="margin-top:10px;min-width:360px">
       <thead><tr><th style="width:34px">#</th><th>Nội dung công việc</th><th style="width:80px">Số ngày</th><th style="width:36px"></th></tr></thead>
       <tbody id="stepsbody"></tbody>
-    </table>
+    </table></div>
     <div class="row" style="margin-top:12px">
       <button class="btn gho sm" onclick="addStep()">+ Thêm bước</button>
       <span style="margin-left:auto" class="sum">Tổng lắp đặt: <span id="instsum">0</span> ngày</span>
@@ -355,6 +398,7 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font
       <div class="f"><label>Ngày hàng về công trình</label><input type="date" id="l_arrive"></div>
       <div class="f"><label>Cần xong mặt bằng trước ngày</label><input type="date" id="l_site"></div>
       <div class="f"><label>Số lượng thang</label><input id="l_qty" value="01"></div>
+      <div class="f"><label>Cảng nhập hàng</label><input id="l_cang" value="Hải Phòng" placeholder="VD: Hải Phòng"></div>
       <div class="f"><label>Người nhận (xưng hô trong email)</label><input id="l_to" placeholder="VD: Anh Khôi / Chị Lan"></div>
       <div class="f"><label>Ngày nhận tạm ứng đợt 1</label><input type="date" id="l_adv"></div>
       <div class="f"><label>Điều khoản tính ngày (nêu trong email)</label><input id="l_clause" value="Điều 4.2 (a)"></div>
@@ -446,7 +490,7 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font
   <div class="panel">
     <h2 style="font-size:16px"><span class="no" style="background:var(--navy)">D</span>Danh sách thang máy &amp; phạm vi nghiệm thu</h2>
     <p class="hint">Khai báo <b>toàn bộ thang của dự án</b>, sau đó chia các <b>đợt nghiệm thu</b> ở mục D3 (1 thang, một số thang, hay tất cả). Loại thang và phòng máy được ghi vào bảng khối lượng của mọi biên bản.</p>
-    <div style="overflow-x:auto">
+    <div class="tblwrap">
     <table class="edit" style="margin-top:8px;min-width:1050px">
       <thead><tr><th style="width:28px">#</th><th style="width:90px">Tên thang</th><th>Vị trí</th><th style="width:150px">Loại thang</th><th style="width:135px">Phòng máy</th><th style="width:130px">Model</th><th style="width:82px">Tải (kg)<br><span style="font-weight:400;text-transform:none">cao nâng (m)</span></th><th style="width:82px">Số người<br><span style="font-weight:400;text-transform:none">góc nghiêng</span></th><th style="width:80px">Vận tốc</th><th style="width:92px">Điểm dừng<br><span style="font-weight:400;text-transform:none">bề rộng bậc</span></th><th style="width:32px"></th></tr></thead>
       <tbody id="qelevsbody"></tbody>
@@ -468,15 +512,25 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font
 
     <h2 style="font-size:15px;margin-top:22px"><span class="no" style="background:var(--navy)">D2</span>Hạng mục khác (tuỳ chọn)</h2>
     <p class="hint">Các hạng mục ngoài thang máy đưa vào bảng khối lượng nghiệm thu: đà thép, bản mã, gối đôn, khối lượng phát sinh theo phụ lục…</p>
-    <table class="edit" style="margin-top:8px">
+    <div class="tblwrap"><table class="edit" style="margin-top:8px;min-width:640px">
       <thead><tr><th style="width:28px">#</th><th>Tên hạng mục</th><th>Diễn giải</th><th style="width:70px">ĐVT</th><th style="width:60px">SL</th><th style="width:110px">Xuất xứ</th><th style="width:32px"></th></tr></thead>
       <tbody id="qextrasbody"></tbody>
-    </table>
+    </table></div>
     <div class="row" style="margin-top:10px"><button class="btn gho sm" onclick="addQExtra()">+ Thêm hạng mục</button></div>
   </div>
 
   <div class="panel">
-    <div class="row" style="justify-content:flex-end;gap:12px">
+    <h2 style="font-size:15px"><span class="no" style="background:var(--navy)">E</span>Kiểu in</h2>
+    <p class="hint">In 2 mặt thì mỗi biên bản phải bắt đầu ở mặt trước của tờ mới. Chọn <b>In 2 mặt</b>, Word sẽ tự chèn một trang trắng vào những tài liệu có số trang lẻ. Ở chế độ này số trang chạy liên tục cho cả bộ hồ sơ (Trang 47/272) thay vì đánh lại từ 1 theo từng biên bản.</p>
+    <div class="grid g2">
+      <div class="f"><label>Chế độ in</label>
+        <select id="q_inhaimat" onchange="qPrintHint()">
+          <option value="1">In 1 mặt — số trang đánh lại theo từng biên bản (Trang 1/3)</option>
+          <option value="2">In 2 mặt — chèn trang trắng cho tài liệu lẻ trang, số trang cả bộ</option>
+        </select>
+      </div>
+    </div>
+    <div class="row" style="justify-content:flex-end;gap:12px;margin-top:18px">
       <span id="q_status" style="font-size:12.5px;color:var(--muted);margin-right:auto"></span>
       <button class="btn pri" onclick="exportQuality()">⬇ Xuất bộ hồ sơ chất lượng (.docx)</button>
     </div>
@@ -1311,7 +1365,10 @@ function addQElev(){
   normElevs();S.qElevs.push(newElev());
   // nếu chỉ có 1 đợt thì thang mới mặc định thuộc đợt đó (tránh bị bỏ sót)
   ensurePhases();
-  if(S.qPhases.length===1)S.qPhases[0].ids.push(S.qElevs.length-1);
+  if(S.qPhases.length===1){
+    const k=S.qElevs.length-1;
+    S.qPhases[0].steps.forEach(a=>{if(a&&a.indexOf(k)<0)a.push(k);});
+  }
   renderQElevs();renderQPhases();
 }
 function updateQCount(){
@@ -1321,12 +1378,17 @@ function updateQCount(){
   const sc=document.getElementById("q_scope");
   if(!sc)return;
   ensurePhases();
-  const parts=S.qPhases.map(p=>(p.label||"Đợt "+p.no)+": "+(phaseElevs(p).map(e=>e.name).join(", ")||"(chưa chọn thang)"));
-  const inAny=[];S.qPhases.forEach(p=>(p.ids||[]).forEach(i=>{if(inAny.indexOf(i)<0)inAny.push(i);}));
+  const parts=S.qPhases.map(p=>{
+    const ns=phaseSecs(p),full=ns.length===SECS.length;
+    return (p.label||"Đợt "+p.no)+": "+(phaseElevs(p).map(e=>e.name).join(", ")||"(chưa chọn thang)")
+      +(ns.length?(full?" – đủ 7 bước":" – bước "+ns.map(si=>ROMAN[si]).join(", ")):" – (chưa chọn bước)");
+  });
+  const inAny=[];S.qPhases.forEach(p=>phaseIds(p).forEach(i=>{if(inAny.indexOf(i)<0)inAny.push(i);}));
   const missing=S.qElevs.map((e,i)=>i).filter(i=>(S.qElevs[i].name||"").trim()&&inAny.indexOf(i)<0)
                         .map(i=>S.qElevs[i].name);
-  sc.textContent=!tot?"":(S.qPhases.length===1&&phaseElevs(S.qPhases[0]).length===tot
-    ?"Nghiệm thu 01 đợt cho TOÀN BỘ "+pad2(tot)+" thang máy của dự án."
+  const mot=S.qPhases.length===1&&phaseElevs(S.qPhases[0]).length===tot&&phaseSecs(S.qPhases[0]).length===SECS.length;
+  sc.textContent=!tot?"":(mot
+    ?"Nghiệm thu 01 đợt, đủ 7 bước cho TOÀN BỘ "+pad2(tot)+" thang máy của dự án."
     :"Bộ hồ sơ gồm "+pad2(S.qPhases.length)+" đợt — "+parts.join(" · "))
     +(missing.length?"  ⚠ Chưa xếp đợt cho: "+missing.join(", "):"");
 }
@@ -1439,11 +1501,18 @@ function prefillQuality(){
 function defaultParties(){
   const P2=()=>[{n:"",p:""},{n:"",p:""}];
   return [
-    {role:"Chủ đầu tư",           name:"", kg:true,  kt:false, people:P2()},
-    {role:"Tư vấn giám sát",      name:"", kg:true,  kt:true,  people:P2()},
-    {role:"Tổng thầu thi công",   name:"", kg:true,  kt:true,  people:P2()},
-    {role:"Nhà thầu thi công",    name:"", kg:false, kt:true,  people:P2()}
+    {role:"Chủ đầu tư",           name:"", kg:true,  kn:true, kt:false, people:P2()},
+    {role:"Tư vấn giám sát",      name:"", kg:true,  kn:true, kt:true,  people:P2()},
+    {role:"Tổng thầu thi công",   name:"", kg:true,  kn:true, kt:true,  people:P2()},
+    {role:"Nhà thầu thi công",    name:"", kg:false, kn:true, kt:true,  people:P2()}
   ];
+}
+// đơn vị kiểm định độc lập chỉ phát hành hồ sơ kiểm định riêng,
+// không nhận phiếu yêu cầu và không ký biên bản nghiệm thu / kiểm tra
+function laKiemDinh(role){return /kiểm định|giám định/i.test(role||"");}
+function setQPartyRole(i,v){
+  const pt=S.qParties[i];pt.role=v;
+  if(laKiemDinh(v)){pt.kg=false;pt.kn=false;pt.kt=false;renderQParties();}
 }
 function renderQParties(){
   const box=document.getElementById("qpartiesbox");if(!box)return;box.innerHTML="";
@@ -1454,19 +1523,20 @@ function renderQParties(){
       <td><input value="${esc(pe.p)}" placeholder="Chức vụ" onchange="S.qParties[${i}].people[${k}].p=this.value"></td>
       <td class="x"><button class="icb" title="Xóa người" onclick="S.qParties[${i}].people.splice(${k},1);renderQParties()">✕</button></td></tr>`).join("");
     d.innerHTML=`<div class="phead">
-        <div class="f" style="margin:0"><label>Vai trò</label><input value="${esc(pt.role)}" placeholder="VD: Chủ đầu tư" onchange="S.qParties[${i}].role=this.value"></div>
+        <div class="f" style="margin:0"><label>Vai trò</label><input value="${esc(pt.role)}" placeholder="VD: Chủ đầu tư" onchange="setQPartyRole(${i},this.value)"></div>
         <div class="f" style="margin:0"><label>Tên đơn vị</label><input value="${esc(pt.name)}" placeholder="Tên công ty" onchange="S.qParties[${i}].name=this.value"></div>
         <label class="chk"><input type="checkbox" ${pt.kg?"checked":""} onchange="S.qParties[${i}].kg=this.checked">Nhận phiếu YC</label>
+        <label class="chk"><input type="checkbox" ${pt.kn!==false?"checked":""} onchange="S.qParties[${i}].kn=this.checked">Ký BB nghiệm thu</label>
         <label class="chk"><input type="checkbox" ${pt.kt?"checked":""} onchange="S.qParties[${i}].kt=this.checked">Ký BB kiểm tra</label>
         <button class="icb" title="Xóa bên" onclick="S.qParties.splice(${i},1);renderQParties()">✕</button>
       </div>
-      <table class="edit"><thead><tr><th style="width:30px">#</th><th>Họ và tên</th><th>Chức vụ</th><th style="width:32px"></th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="tblwrap"><table class="edit" style="min-width:340px"><thead><tr><th style="width:30px">#</th><th>Họ và tên</th><th>Chức vụ</th><th style="width:32px"></th></tr></thead><tbody>${rows}</tbody></table></div>
       <div class="row" style="margin-top:8px"><button class="btn gho sm" onclick="S.qParties[${i}].people.push({n:'',p:''});renderQParties()">+ Thêm người</button></div>`;
     box.appendChild(d);
   });
   const c=document.getElementById("qpartycount");if(c)c.textContent=S.qParties.length;
 }
-function addQParty(){S.qParties.push({role:"",name:"",kg:true,kt:true,people:[{n:"",p:""},{n:"",p:""}]});renderQParties();}
+function addQParty(){S.qParties.push({role:"",name:"",kg:true,kn:true,kt:true,people:[{n:"",p:""},{n:"",p:""}]});renderQParties();}
 
 /* ---------- sinh XML Word cho các khối động ---------- */
 const DOTS="....................", DOTL="...................................................";
@@ -1483,7 +1553,74 @@ function tblPr(widths){
     +'<w:tblLook w:val="0000" w:firstRow="0" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:noHBand="0" w:noVBand="0"/></w:tblPr>'
     +'<w:tblGrid>'+widths.map(w=>'<w:gridCol w:w="'+w+'"/>').join("")+'</w:tblGrid>';
 }
+/* Ngắt dòng tiêu đề "ĐẠI DIỆN ..." theo cụm từ, không cắt giữa một cụm.
+   Ưu tiên ít dòng nhất, sau đó chia cho cân đối -> nhìn gọn và chuyên nghiệp. */
+const CUM_TU=["ĐẠI DIỆN","CHỦ ĐẦU TƯ","BAN QUẢN LÝ","QUẢN LÝ","DỰ ÁN","TƯ VẤN","GIÁM SÁT",
+  "TỔNG THẦU","NHÀ THẦU","THẦU PHỤ","THI CÔNG","LẮP ĐẶT","CUNG CẤP","THANG MÁY","THANG CUỐN",
+  "BĂNG TẢI","ĐƠN VỊ","KIỂM ĐỊNH","XÂY DỰNG","CƠ ĐIỆN","VẬN HÀNH","SỬ DỤNG","KỸ THUẬT",
+  // tên doanh nghiệp
+  "TỔNG CÔNG TY","CÔNG TY","CHI NHÁNH","VĂN PHÒNG","CỔ PHẦN","TẬP ĐOÀN","TNHH MTV","TNHH",
+  "MỘT THÀNH VIÊN","VIỆT NAM","ĐẦU TƯ","THƯƠNG MẠI","DỊCH VỤ","PHÁT TRIỂN","BẤT ĐỘNG SẢN",
+  "HÀ NỘI","TP. HỒ CHÍ MINH","HỒ CHÍ MINH","ĐÀ NẴNG","HẢI PHÒNG"];
+function cumTu(s){
+  const w=String(s||"").trim().split(/\s+/).filter(Boolean),out=[];
+  for(let i=0;i<w.length;){
+    let hit="";
+    for(const t of CUM_TU){
+      const n=t.split(" ").length;
+      if(n>hit.split(" ").length&&w.slice(i,i+n).join(" ")===t)hit=t;
+    }
+    if(hit){out.push(hit);i+=hit.split(" ").length;}
+    else{out.push(w[i]);i++;}
+  }
+  return out;
+}
+function xuongDong(text,wTwip){
+  const max=Math.max(8,Math.floor((wTwip-160)/146)); // ~146 twip mỗi ký tự chữ đậm 13pt
+  const c=cumTu(text),n=c.length;if(!n)return [""];
+  const memo=new Array(n+1);memo[n]={lines:0,mx:0,cut:[]};
+  for(let i=n-1;i>=0;i--){
+    let best=null,acc=0;
+    for(let j=i;j<n;j++){
+      acc+=c[j].length+(j>i?1:0);
+      if(acc>max&&j>i)break;
+      const r=memo[j+1],cand={lines:r.lines+1,mx:Math.max(acc,r.mx),cut:[j+1].concat(r.cut)};
+      // ít dòng nhất -> dòng dài nhất ngắn nhất -> ưu tiên lấp đầy dòng trên trước
+      if(!best||cand.lines<best.lines||(cand.lines===best.lines&&cand.mx<=best.mx))best=cand;
+    }
+    memo[i]=best;
+  }
+  const out=[];let p=0;
+  memo[0].cut.forEach(q=>{out.push(c.slice(p,q).join(" "));p=q;});
+  return out;
+}
+// một đoạn nhiều dòng, ngắt bằng <w:br/> thay vì để Word tự xuống dòng
+function wRunLines(lines,bold){
+  return "<w:r>"+(bold?"<w:rPr><w:b/><w:bCs/></w:rPr>":"")
+    +lines.map((t,i)=>(i?"<w:br/>":"")+'<w:t xml:space="preserve">'+xescQ(t)+"</w:t>").join("")+"</w:r>";
+}
+// header biểu mẫu: tên nhà thầu thi công thang máy, ngắt dòng theo bề rộng ô (4000 twip)
+function hdrCty(name){
+  return '<w:p><w:pPr><w:spacing w:line="264" w:lineRule="auto"/><w:jc w:val="center"/></w:pPr>'
+    +wRunLines(xuongDong((name||"…").toUpperCase(),4000),true)+'</w:p>';
+}
 // bảng chữ ký: mỗi ô là 1 bên, `cols` bên trên một hàng
+// khối ký cuối Phiếu đề nghị nghiệm thu — đơn vị lập phiếu (nhà thầu thang máy)
+function sigYeuCau(parties){
+  const ds=parties.filter(p=>!laKiemDinh(p.role));
+  const nt=ds.find(p=>/nhà thầu|thi công thang|đơn vị thi công|lắp đặt thang/i.test(p.role||""))
+           ||ds.find(p=>p.kg===false)||ds[ds.length-1]||parties[parties.length-1];
+  const pe=nt&&(nt.people||[]).find(z=>(z.n||"").trim());
+  let inner=wPar(wRunLines(xuongDong("ĐƠN VỊ CUNG CẤP & THI CÔNG THANG MÁY",6438),true),PCEN)
+           +wPar(wRun("(Ký, ghi rõ họ tên)"),PCEN)+wPar("",PCEN);
+  if(pe){inner+=wPar(wRun(pe.n,true),PCEN);if((pe.p||"").trim())inner+=wPar(wRun(pe.p),PCEN);}
+  else inner+=wPar("",PCEN);
+  // ô ký rộng để tiêu đề nằm gọn 1 dòng
+  return '<w:tbl>'+tblPr([3200,6438])
+    +'<w:tr><w:trPr><w:cantSplit/></w:trPr>'
+    +'<w:tc><w:tcPr><w:tcW w:w="3200" w:type="dxa"/>'+TCMAR+'</w:tcPr>'+wPar("")+'</w:tc>'
+    +'<w:tc><w:tcPr><w:tcW w:w="6438" w:type="dxa"/>'+TCMAR+'</w:tcPr>'+inner+'</w:tc></w:tr></w:tbl>';
+}
 function sigTable(list,cols,kyText){
   if(!list.length)return wPar("");
   const w=Math.floor(9638/cols),widths=Array.from({length:cols},()=>w);
@@ -1493,9 +1630,9 @@ function sigTable(list,cols,kyText){
     for(let c=0;c<cols;c++){
       const pt=list[i+c];let inner="";
       if(pt){
-        inner+=wPar(wRun("ĐẠI DIỆN "+(pt.role||"").toUpperCase(),true),PCEN);
-        if(pt.name)inner+=wPar(wRun(pt.name.toUpperCase(),true),PCEN);
-        inner+=wPar(wRun(kyText),PCEN)+wPar("",PCEN)+wPar("",PCEN)+wPar("",PCEN);
+        // chỉ ghi vai trò, KHÔNG ghi tên công ty -> chừa nhiều chỗ ký hơn
+        inner+=wPar(wRunLines(xuongDong("ĐẠI DIỆN "+(pt.role||"").toUpperCase(),w),true),PCEN);
+        inner+=wPar(wRun(kyText),PCEN)+wPar("",PCEN)+wPar("",PCEN)+wPar("",PCEN)+wPar("",PCEN);
         const pe=(pt.people||[]).find(z=>(z.n||"").trim());
         if(pe){inner+=wPar(wRun(pe.n,true),PCEN);if((pe.p||"").trim())inner+=wPar(wRun(pe.p),PCEN);}
       }else inner=wPar("",PCEN);
@@ -1509,11 +1646,12 @@ function sigTable(list,cols,kyText){
 function nnRows(list,nam){
   const cell=(w,inner,cen)=>'<w:tc><w:tcPr><w:tcW w:w="'+w+'" w:type="dxa"/>'+TCMAR+(cen?'<w:vAlign w:val="center"/>':'')+'</w:tcPr>'+inner+'</w:tc>';
   const cp='<w:pPr><w:jc w:val="center"/></w:pPr>';
+  // mỗi hàng gói gọn 2 dòng để phiếu vừa 1 trang
   return list.map(pt=>'<w:tr>'
-    +cell(2200,wPar(wRun((pt.role||"").toUpperCase(),true)),1)
-    +cell(2000,wPar(wRun("..... giờ ....."),cp)+wPar(wRun("..... /..... /"+nam),cp),1)
-    +cell(2800,wPar(wRun("□  Đồng ý nghiệm thu"))+wPar(wRun("□  Ý kiến khác:"))+wPar(wRun(".........................................")))
-    +cell(2638,wPar(wRun("Họ và tên: "+DOTS))+wPar(wRun("Chữ ký:")))
+    +cell(2100,wPar(wRunLines(xuongDong((pt.role||"").toUpperCase(),2100),true),cp),1)
+    +cell(1900,wPar(wRun("..... giờ ....."),cp)+wPar(wRun("..../..../"+nam),cp),1)
+    +cell(2700,wPar(wRun("□  Đồng ý nghiệm thu"))+wPar(wRun("□  Ý kiến khác: ........")))
+    +cell(2938,wPar(wRun("Họ và tên: "+DOTS))+wPar(wRun("Chữ ký:")))
     +'</w:tr>').join("");
 }
 // thay marker nằm trong 1 đoạn <w:p> (hoặc 1 dòng <w:tr>) bằng XML sinh ra
@@ -1525,6 +1663,54 @@ function cutBlock(doc,tokA,tokB,keep){
   const b0=doc.lastIndexOf("<w:p",pB),b1=doc.indexOf("</w:p>",pB)+6;
   const mid=doc.slice(a1,b0);
   return doc.slice(0,a0)+(keep?mid:"")+doc.slice(b1);
+}
+/* In 2 mặt: mỗi section (mỗi biên bản/phiếu, mỗi trang phân cách) phải bắt đầu
+   ở mặt trước của một tờ giấy mới. Word làm việc này bằng ngắt section kiểu
+   "trang lẻ" — gặp section có số trang lẻ thì tự chèn một trang trắng phía sau.
+   Cơ chế đó chỉ có hiệu lực khi số trang chạy liên tục, nên chế độ 2 mặt bỏ
+   việc đánh số lại từ 1 theo từng tài liệu và footer đổi sang số trang của cả bộ. */
+function duplexSect(doc){
+  doc=doc.replace(/<w:pgNumType\b[^>]*\/>/g,"");
+  return doc.replace(/<w:sectPr\b([^>]*)>/g,(m,a)=>
+    /\/$/.test(a)||/<w:type\b/.test(m)?m:'<w:sectPr'+a+'><w:type w:val="oddPage"/>');
+}
+function duplexFooter(ft){return ft.split("SECTIONPAGES").join("NUMPAGES");}
+function qPrintHint(){
+  const st=document.getElementById("q_status");if(!st)return;
+  st.textContent=qv("q_inhaimat")==="2"
+    ?"In 2 mặt: Word sẽ chèn trang trắng khi mở file (bấm Ctrl+A rồi F9 nếu số trang chưa cập nhật)."
+    :"";
+}
+// tách vùng của 1 đợt thành 7 đoạn theo mốc {{SECn_BEGIN}} (mốc bị xoá khỏi kết quả)
+function splitSecs(tpl){
+  const at=[];
+  for(let n=1;n<=SECS.length;n++){
+    const i=tpl.indexOf("{{SEC"+n+"_BEGIN}}");
+    if(i<0)return null;
+    at.push(tpl.lastIndexOf("<w:p>",i));
+  }
+  const segs=at.map((a,n)=>tpl.slice(a,n+1<at.length?at[n+1]:tpl.length)
+                              .replace(/^<w:p><w:r><w:t>\{\{SEC\d+_BEGIN\}\}<\/w:t><\/w:r><\/w:p>/,""));
+  return {pre:tpl.slice(0,at[0]),segs:segs};
+}
+// điền 1 bước nghiệm thu: si = bước gốc (0..6), k = thứ tự thực tế trong đợt
+function fillSec(seg,si,k,p,parties){
+  const se=stepElevs(p,si),extras=(si===0||si===1)?S.qExtras:[];
+  let x=putBlock(seg,"{{BLOCK_TB"+(si+1)+"}}",tbRows(si+1,se,extras),true);
+  const coCuon=se.some(isCuon),coPccc=se.some(e=>e.type==="pccc");
+  x=putBlock(x,"{{BLOCK_KT_PCCC}}",coPccc?ktPcccRows():"",true);
+  x=putBlock(x,"{{BLOCK_KY_YC}}",sigYeuCau(parties));
+  x=putBlock(x,"{{BLOCK_TCNT}}",tcNtList(se,qv("q_nhasx")));
+  x=putBlock(x,"{{BLOCK_KT_HM}}",(coCuon?ktCuonRows():"")+ktHangMucRows(S.qExtras),true);
+  // ô "Tiêu chuẩn thi công – nghiệm thu áp dụng" trong Biên bản kiểm tra
+  if(coCuon)x=x.split("TCVN 6396-50:2017 (EN 81-50:2014).")
+               .join("TCVN 6396-50:2017 (EN 81-50:2014); TCVN 6397-1:2010 (EN 115-1:2008); QCVN 11:2012/BLĐTBXH.");
+  if(!coPccc)x=x.split("Chuyển sang chế độ vận hành ưu tiên cho lực lượng cứu hỏa")
+                .join("Không áp dụng - bước nghiệm thu này không có thang chữa cháy");
+  x=x.split("{{DS_THANG}}").join(xescQ(se.map(e=>e.name).join(", ")||"…"));
+  // đánh lại số La Mã theo các bước thực có trong đợt (không để nhảy số)
+  if(k!==si)x=x.replace(/(<w:t[^>]*>)PHẦN [IVX]+(<\/w:t>)/g,(m,a,c)=>a+"PHẦN "+ROMAN[k]+c);
+  return x;
 }
 function putBlock(doc,tok,xml,inRow){
   const tag=inRow?"w:tr":"w:p";
@@ -1548,45 +1734,79 @@ const SECS=[
   {ma:"HTHM", ten:"HOÀN THÀNH HẠNG MỤC THANG MÁY ĐƯA VÀO SỬ DỤNG"}
 ];
 const ROMAN=["I","II","III","IV","V","VI","VII","VIII","IX","X"];
-function newPhase(n){return {no:pad2(n),label:"Đợt "+n,ids:[],htm:true};}
+const SEC_NGAN=["Vật liệu, thiết bị đầu vào","Lắp đặt tĩnh","Chạy thử đơn động không tải",
+  "Chạy thử đơn động có tải","Chạy thử liên động không tải","Chạy thử liên động có tải",
+  "Hoàn thành hạng mục & bàn giao"];
+const allIds=()=>S.qElevs.map((e,i)=>i);
+// mỗi đợt: steps[i] = mảng thang của bước i, null = đợt này không làm bước đó
+function newPhase(n,steps){return {no:pad2(n),label:"Đợt "+n,steps:steps||SECS.map(()=>[])};}
 function ensurePhases(){
-  if(!S.qPhases||!S.qPhases.length){
-    S.qPhases=[newPhase(1)];
-    S.qPhases[0].ids=S.qElevs.map((e,i)=>i);   // mặc định: 1 đợt gồm tất cả thang
-  }
+  if(!S.qPhases||!S.qPhases.length)
+    S.qPhases=[newPhase(1,SECS.map(()=>allIds()))];   // mặc định: 1 đợt, đủ 7 bước, đủ thang
   const max=S.qElevs.length;
-  S.qPhases.forEach(p=>{p.ids=(p.ids||[]).filter(i=>i<max);if(p.htm===undefined)p.htm=true;});
+  S.qPhases.forEach(p=>{
+    // dữ liệu cũ (ids + htm) -> mô hình bước
+    if(!Array.isArray(p.steps))
+      p.steps=SECS.map((s,i)=>(i===6&&p.htm===false)?null:(p.ids||allIds()).slice());
+    while(p.steps.length<SECS.length)p.steps.push(null);
+    p.steps=p.steps.map(a=>Array.isArray(a)?a.filter(i=>i<max).sort((x,y)=>x-y):null);
+    p.ids=phaseIds(p);p.htm=stepOn(p,6);
+  });
 }
-function phaseElevs(p){return (p.ids||[]).map(i=>S.qElevs[i]).filter(e=>e&&(e.name||"").trim());}
+function stepOn(p,si){return Array.isArray(p.steps&&p.steps[si]);}
+function stepIds(p,si){return stepOn(p,si)?p.steps[si]:[];}
+function stepElevs(p,si){return stepIds(p,si).map(i=>S.qElevs[i]).filter(e=>e&&(e.name||"").trim());}
+// thang của cả đợt = hợp của mọi bước trong đợt
+function phaseIds(p){const s=[];(p.steps||[]).forEach(a=>(a||[]).forEach(i=>{if(s.indexOf(i)<0)s.push(i);}));return s.sort((a,b)=>a-b);}
+function phaseSecs(p){return SECS.map((sc,si)=>si).filter(si=>stepOn(p,si));}
+function phaseElevs(p){return phaseIds(p).map(i=>S.qElevs[i]).filter(e=>e&&(e.name||"").trim());}
 function renderQPhases(){
   const box=document.getElementById("qphasesbox");if(!box)return;
   normElevs();ensurePhases();box.innerHTML="";
   S.qPhases.forEach((p,i)=>{
-    const chks=S.qElevs.map((e,k)=>`<label class="chk" style="text-transform:none;font-weight:500">
-      <input type="checkbox" ${(p.ids||[]).indexOf(k)>=0?"checked":""} onchange="togglePhaseElev(${i},${k},this.checked)">${esc(e.name||"(chưa đặt tên)")}</label>`).join(" ");
+    const rows=SECS.map((sc,si)=>{
+      const on=stepOn(p,si),ids=stepIds(p,si);
+      const chks=S.qElevs.map((e,k)=>`<label class="chk" style="text-transform:none;font-weight:500">
+        <input type="checkbox" ${ids.indexOf(k)>=0?"checked":""} ${on?"":"disabled"}
+          onchange="toggleStepElev(${i},${si},${k},this.checked)">${esc(e.name||"(chưa đặt tên)")}</label>`).join(" ");
+      return `<tr${on?"":' style="opacity:.45"'}>
+        <td style="width:26px;text-align:center">${ROMAN[si]}</td>
+        <td style="width:230px"><label class="chk" style="text-transform:none;font-weight:600">
+          <input type="checkbox" ${on?"checked":""} onchange="toggleStep(${i},${si},this.checked)">${esc(SEC_NGAN[si])}</label></td>
+        <td><div class="row" style="flex-wrap:wrap;gap:10px">${
+          S.qElevs.length?chks+(on?` <button class="btn gho sm" onclick="allStepElevs(${i},${si})">Tất cả</button>`:"")
+                         :"<i style='color:var(--muted);font-size:12px'>Chưa khai báo thang</i>"}</div></td></tr>`;
+    }).join("");
     const d=document.createElement("div");d.className="party";
-    d.innerHTML=`<div class="phead" style="grid-template-columns:90px 1.2fr 3fr 34px">
+    d.innerHTML=`<div class="phead" style="grid-template-columns:90px 1fr 34px">
         <div class="f" style="margin:0"><label>Số đợt</label><input value="${esc(p.no)}" onchange="S.qPhases[${i}].no=this.value" placeholder="01"></div>
         <div class="f" style="margin:0"><label>Tên đợt</label><input value="${esc(p.label)}" onchange="S.qPhases[${i}].label=this.value"></div>
-        <div class="f" style="margin:0"><label>Thang nghiệm thu trong đợt</label><div class="row" style="flex-wrap:wrap;gap:12px;padding-top:6px">${chks||"<i style='color:var(--muted);font-size:12px'>Chưa khai báo thang</i>"}</div></div>
         <button class="icb" title="Xóa đợt" onclick="S.qPhases.splice(${i},1);renderQPhases()">✕</button>
       </div>
-      <label class="chk" style="display:inline-block;margin-top:10px"><input type="checkbox" ${p.htm?"checked":""} onchange="S.qPhases[${i}].htm=this.checked;updateQCount()">Đợt này có nghiệm thu hoàn thành hạng mục &amp; bàn giao thiết bị</label>`;
+      <table class="edit steps" style="margin-top:8px"><thead><tr><th></th><th>Bước nghiệm thu trong đợt</th><th>Thang được nghiệm thu ở bước này</th></tr></thead><tbody>${rows}</tbody></table>`;
     box.appendChild(d);
   });
   const c=document.getElementById("qphasecount");if(c)c.textContent=S.qPhases.length;
   updateQCount();
 }
-function togglePhaseElev(pi,ei,on){
-  const ids=S.qPhases[pi].ids||(S.qPhases[pi].ids=[]);
-  const k=ids.indexOf(ei);
-  if(on&&k<0)ids.push(ei); else if(!on&&k>=0)ids.splice(k,1);
-  ids.sort((a,b)=>a-b);updateQCount();
+function toggleStep(pi,si,on){
+  const p=S.qPhases[pi];
+  p.steps[si]=on?allIds():null;   // bật bước -> mặc định đủ thang, bỏ bớt sau
+  renderQPhases();
 }
+function toggleStepElev(pi,si,ei,on){
+  const a=S.qPhases[pi].steps[si];if(!a)return;
+  const k=a.indexOf(ei);
+  if(on&&k<0)a.push(ei); else if(!on&&k>=0)a.splice(k,1);
+  a.sort((x,y)=>x-y);S.qPhases[pi].ids=phaseIds(S.qPhases[pi]);updateQCount();
+}
+function allStepElevs(pi,si){S.qPhases[pi].steps[si]=allIds();renderQPhases();}
 function addQPhase(){
-  ensurePhases();S.qPhases.push(newPhase(S.qPhases.length+1));
-  // mặc định: chỉ đợt cuối nghiệm thu hoàn thành & bàn giao (sửa lại được)
-  S.qPhases.forEach((p,i)=>{p.htm=(i===S.qPhases.length-1);});
+  ensurePhases();
+  // đợt mới mặc định gồm các bước chưa nghiệm thu ở đợt trước; hết bước thì để trống
+  const daLam={};S.qPhases.forEach(p=>SECS.forEach((s,si)=>{if(stepOn(p,si))daLam[si]=1;}));
+  const conLai=SECS.map((s,si)=>daLam[si]?null:allIds());
+  S.qPhases.push(newPhase(S.qPhases.length+1,conLai.some(Boolean)?conLai:SECS.map(()=>null)));
   renderQPhases();
 }
 
@@ -1614,10 +1834,10 @@ function dmRow(stt,ma,ten,so){
 function buildDanhMuc(mahs,phases){
   let out="",stt=0;
   phases.forEach(p=>{
-    const els=phaseElevs(p).map(e=>e.name).join(", ");
-    SECS.forEach((sc,si)=>{   // mỗi đợt lặp lại PHẦN I..VII, khớp với thân hồ sơ
-      if(sc.ma==="HTHM"&&p.htm===false)return;   // đợt này không nghiệm thu hoàn thành
-      out+=dmGroup(ROMAN[si],sc.ten+(phases.length>1?" — "+(p.label||"Đợt "+p.no).toUpperCase()+(els?" ("+els+")":""):""));
+    // chỉ liệt kê các bước đợt này thực sự nghiệm thu, đánh số La Mã liên tục
+    phaseSecs(p).forEach((si,k)=>{
+      const sc=SECS[si],els=stepElevs(p,si).map(e=>e.name).join(", ");
+      out+=dmGroup(ROMAN[k],sc.ten+(phases.length>1?" — "+(p.label||"Đợt "+p.no).toUpperCase():"")+(els?" ("+els+")":""));
       [["YCNT","Phiếu đề nghị nghiệm thu"],["BBNT","Biên bản nghiệm thu công việc"],
        ["BBKT","Biên bản kiểm tra công tác nghiệm thu công việc"]].forEach(d=>{
         out+=dmRow(++stt,d[0],d[1],mahs+"/"+d[0]+"/"+sc.ma+"/"+p.no);
@@ -1625,7 +1845,7 @@ function buildDanhMuc(mahs,phases){
     });
   });
   const dsAll=S.qElevs.filter(e=>(e.name||"").trim()).map(e=>e.name).join(", ");
-  const dsBBG=phases.filter(p=>p.htm!==false);
+  const dsBBG=phases.filter(p=>stepOn(p,6));
   out+=dmGroup(ROMAN[7],"HỒ SƠ KIỂM ĐỊNH KỸ THUẬT AN TOÀN THANG MÁY");
   [["BBKĐ","Biên bản kiểm định kỹ thuật an toàn thang máy ("+dsAll+")"],
    ["GCNKĐ","Giấy chứng nhận kết quả kiểm định kỹ thuật an toàn"],
@@ -1641,7 +1861,7 @@ function buildDanhMuc(mahs,phases){
   if(dsBBG.length){
     out+=dmGroup(ROMAN[9],"BIÊN BẢN BÀN GIAO THIẾT BỊ");
     dsBBG.forEach(p=>{
-      const els2=phaseElevs(p).map(e=>e.name).join(", ");
+      const els2=stepElevs(p,6).map(e=>e.name).join(", ");
       out+=dmRow(++stt,"BBBG","Biên bản bàn giao thiết bị"+(phases.length>1?" — "+(p.label||"Đợt "+p.no)+(els2?" ("+els2+")":""):""),
                  mahs+"/BBBG/"+p.no);
     });
@@ -1896,7 +2116,8 @@ async function exportQuality(){
     const nam=map["{{NAM}}"];
     const abc="abcdefghijklmnopqrstuvwxyz";
     let tp="";
-    parties.forEach((pt,i)=>{
+    // thành phần trực tiếp tham gia nghiệm thu = đúng các bên ký biên bản nghiệm thu
+    parties.filter(p=>p.kn!==false).forEach((pt,i)=>{
       tp+=wPar(wRun(abc[i]+". Đại diện "+(pt.role||"")+": "+(pt.name||""),true),PLIST);
       (pt.people&&pt.people.length?pt.people:[{n:"",p:""}]).forEach(pe=>{
         tp+="<w:p>"+PPERS+'<w:r><w:t xml:space="preserve">- Ông/Bà: '+xescQ(pe.n||DOTS)+"</w:t></w:r>"
@@ -1904,7 +2125,7 @@ async function exportQuality(){
       });
     });
     doc=putBlock(doc,"{{BLOCK_TP}}",tp||wPar(""));
-    doc=putBlock(doc,"{{BLOCK_KY}}",sigTable(parties,2,"(Ký, ghi rõ họ tên)"));
+    doc=putBlock(doc,"{{BLOCK_KY}}",sigTable(parties.filter(p=>p.kn!==false),2,"(Ký, ghi rõ họ tên)"));
     doc=putBlock(doc,"{{BLOCK_KY_KT}}",sigTable(parties.filter(p=>p.kt),3,"(Ký, ghi rõ họ tên)"));
     const kg=parties.filter(p=>p.kg);
     doc=putBlock(doc,"{{BLOCK_KG}}",kg.map(pt=>wPar(wRun("- "+(pt.role||"")+": "+(pt.name||DOTL)),PLIST)).join("")||wPar(""));
@@ -1937,22 +2158,12 @@ async function exportQuality(){
       const newParts=footerParts;
       let body="";
       phases.forEach((p,pi)=>{
-        const pe=phaseElevs(p), pNames=pe.map(e=>e.name).join(", ")||"…";
-        let x=bodyTpl;
-        for(let sec=1;sec<=7;sec++)
-          x=putBlock(x,"{{BLOCK_TB"+sec+"}}",tbRows(sec,pe,(sec===1||sec===2)?S.qExtras:[]),true);
-        // tiêu chí riêng thang chữa cháy: chỉ khi đợt này có thang PCCC
-        const peCuon=pe.some(isCuon);
-        x=putBlock(x,"{{BLOCK_KT_PCCC}}",pe.some(e=>e.type==="pccc")?ktPcccRows():"",true);
-        x=putBlock(x,"{{BLOCK_TCNT}}",tcNtList(pe,qv("q_nhasx")));
-        x=putBlock(x,"{{BLOCK_KT_HM}}",(peCuon?ktCuonRows():"")+ktHangMucRows(S.qExtras),true);
-        // ô "Tiêu chuẩn thi công – nghiệm thu áp dụng" trong Biên bản kiểm tra
-        if(peCuon)x=x.split("TCVN 6396-50:2017 (EN 81-50:2014).")
-                     .join("TCVN 6396-50:2017 (EN 81-50:2014); TCVN 6397-1:2010 (EN 115-1:2008); QCVN 11:2012/BLĐTBXH.");
-        // nếu đợt này không có thang chữa cháy thì ghi rõ không áp dụng
-        if(!pe.some(e=>e.type==="pccc"))
-          x=x.split("Chuyển sang chế độ vận hành ưu tiên cho lực lượng cứu hỏa")
-             .join("Không áp dụng - đợt nghiệm thu này không có thang chữa cháy");
+        // tách vùng 1 đợt thành 7 bước, mỗi bước điền theo danh sách thang riêng của bước
+        const secs=splitSecs(bodyTpl);
+        const chon=phaseSecs(p);
+        let x=secs.pre+chon.map((si,k)=>fillSec(secs.segs[si],si,k,p,parties)).join("");
+        // phần ngoài các bước (nếu có) lấy danh sách thang của cả đợt
+        x=x.split("{{DS_THANG}}").join(xescQ(phaseElevs(p).map(e=>e.name).join(", ")||"…"));
         const dotVal=p.no||pad2(pi+1);
         // đợt đầu dùng luôn footer gốc; các đợt sau nhân bản footer với số đợt riêng
         if(pi===0){
@@ -1981,10 +2192,7 @@ async function exportQuality(){
             x=x.replace(new RegExp('(<w:footerReference[^>]*)r:id="'+rid+'"','g'),'$1r:id="'+nid+'"');
           });
         }
-        // đợt không nghiệm thu hoàn thành thì bỏ PHẦN VII khỏi đợt đó
-        x=cutBlock(x,"{{HTHM_BEGIN}}","{{HTHM_END}}",p.htm!==false);
         x=x.split("{{DOT}}").join(xescQ(dotVal));
-        x=x.split("{{DS_THANG}}").join(xescQ(pNames));
         if(phases.length>1)
           x=x.replace(/(<w:t[^>]*>)PHẦN ([IVX]+)(<\/w:t>)/g,
                       (m,a2,r,c2)=>a2+"PHẦN "+r+" – "+xescQ((p.label||"ĐỢT "+p.no).toUpperCase())+c2);
@@ -1997,10 +2205,13 @@ async function exportQuality(){
     // ----- Biên bản bàn giao: 1 bản cho mỗi đợt có nghiệm thu hoàn thành -----
     const iBB=doc.indexOf("{{BBG_BEGIN}}"),iBE=doc.indexOf("{{BBG_END}}");
     if(iBB>=0&&iBE>iBB){
-      const a0=doc.lastIndexOf("<w:p",iBB),a1=doc.indexOf("</w:p>",iBB)+6;
-      const b0=doc.lastIndexOf("<w:p",iBE),b1=doc.indexOf("</w:p>",iBE)+6;
+      const a0=doc.lastIndexOf("<w:p>",iBB),a1=doc.indexOf("</w:p>",iBB)+6;
+      const b0=doc.lastIndexOf("<w:p>",iBE),b1=doc.indexOf("</w:p>",iBE)+6;
       const tpl=doc.slice(a1,b0);
-      const dsBBG=phases.filter(p=>p.htm!==false);
+      // đoạn mốc {{BBG_BEGIN}} mang sectPr của phần trước -> giữ lại để đóng section đó
+      const pPrA=(doc.slice(a0,a1).match(/<w:pPr>[\s\S]*?<\/w:pPr>/)||[""])[0];
+      const brkPrev=pPrA?"<w:p>"+pPrA+"</w:p>":"";
+      const dsBBG=phases.filter(p=>stepOn(p,6));
       // footer của biên bản bàn giao: mỗi đợt một bản mang số đợt riêng
       let relsB=await zip.file("word/_rels/document.xml.rels").async("string");
       let ctB=await zip.file("[Content_Types].xml").async("string");
@@ -2012,7 +2223,7 @@ async function exportQuality(){
       let maxB=0;for(const m of relsB.matchAll(/Id="rId(\d+)"/g))maxB=Math.max(maxB,+m[1]);
       let bbg="";
       dsBBG.forEach((p,k)=>{
-        const pe=phaseElevs(p);
+        const pe=stepElevs(p,6);
         const uniq=a=>a.filter((v,i)=>v&&a.indexOf(v)===i).join("; ")||"…";
         let y=tpl;
         const M={
@@ -2048,11 +2259,25 @@ async function exportQuality(){
             (m,a2,c2)=>a2+"BIÊN BẢN BÀN GIAO THIẾT BỊ – "+xescQ((p.label||"ĐỢT "+p.no).toUpperCase())+c2);
         bbg+=y;
       });
-      doc=doc.slice(0,a0)+bbg+doc.slice(b1);
+      // biên bản bàn giao cuối cùng: đưa sectPr của nó thành sectPr của body,
+      // tránh sinh thêm một section rỗng (một trang trắng) ở cuối tài liệu
+      let lastSect="";
+      const PK="<w:p><w:pPr>",SK="</w:pPr></w:p>",iL=bbg.lastIndexOf(PK+"<w:sectPr");
+      if(iL>=0&&bbg.endsWith(SK)){
+        lastSect=bbg.slice(iL+PK.length,bbg.length-SK.length);
+        bbg=bbg.slice(0,iL);
+      }
+      doc=doc.slice(0,a0)+(bbg?brkPrev:"")+bbg+doc.slice(b1);
+      if(lastSect){
+        const ib=doc.lastIndexOf("</w:body>"),is=doc.lastIndexOf("<w:sectPr",ib);
+        if(is>0)doc=doc.slice(0,is)+lastSect+doc.slice(doc.indexOf("</w:sectPr>",is)+11);
+      }
       zip.file("word/_rels/document.xml.rels",relsB);
       zip.file("[Content_Types].xml",ctB);
     }
     // danh mục tiêu chuẩn áp dụng: theo loại thiết bị thực có trong hồ sơ
+    // header các biểu mẫu mang tên nhà thầu thi công thang máy
+    doc=putBlock(doc,"{{BLOCK_HDR}}",hdrCty(nhaThau));
     doc=putBlock(doc,"{{BLOCK_TCAD}}",tcList(els,qv("q_nhasx"),qv("q_mabanve")));
     // danh mục hồ sơ: gộp đầy đủ mọi đợt
     doc=putBlock(doc,"{{BLOCK_DM}}",buildDanhMuc(map["{{MA_HS}}"],phases),true);
@@ -2061,12 +2286,22 @@ async function exportQuality(){
 
 
     for(const k in map)doc=doc.split(k).join(xescQ(map[k]));
+    // in 2 mặt: mỗi tài liệu bắt đầu ở mặt trước của tờ mới -> Word tự chèn
+    // trang trắng vào những section có số trang lẻ
+    const hai=qv("q_inhaimat")==="2";
+    if(hai)doc=duplexSect(doc);
     zip.file("word/document.xml",doc);
     // footer cũng chứa số hiệu tài liệu -> phải thay token giống thân hồ sơ
     for(const f in footerParts){
       let ft=footerParts[f];
       for(const k in map)ft=ft.split(k).join(xescQ(map[k]));
+      if(hai)ft=duplexFooter(ft);
       zip.file(f,ft);
+    }
+    // footer nào không đi qua bước nhân bản thì vẫn phải đổi theo chế độ in
+    if(hai)for(const f in zip.files){
+      if(/^word\/footer.*\.xml$/.test(f)&&footerParts[f]===undefined)
+        zip.file(f,duplexFooter(await zip.file(f).async("string")));
     }
     const blob=await zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",compression:"DEFLATE"});
     const tag=(qv("q_sohd")||congTrinh||"ho_so").replace(/[^\w-]/g,"_").slice(0,40);
@@ -2126,7 +2361,8 @@ async function exportLetter(){
       "{{NGAY_MAT_BANG}}":isoToVN(lv("l_site")),
       "{{NGAY_THU}}":isoToVN(lv("l_date")),
       "{{NGUOI_GUI}}":lv("l_from"),
-      "{{SL_THANG}}":lv("l_qty")||"01"
+      "{{SL_THANG}}":lv("l_qty")||"01",
+      "{{CANG}}":lv("l_cang")||"Hải Phòng"
     };
     for(const k in map)doc=doc.split(k).join(xescQ(map[k]));
     zip.file("word/document.xml",doc);
