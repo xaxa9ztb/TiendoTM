@@ -355,6 +355,7 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font
       <div class="f"><label>Ngày hàng về công trình</label><input type="date" id="l_arrive"></div>
       <div class="f"><label>Cần xong mặt bằng trước ngày</label><input type="date" id="l_site"></div>
       <div class="f"><label>Số lượng thang</label><input id="l_qty" value="01"></div>
+      <div class="f"><label>Cảng nhập hàng</label><input id="l_cang" value="Hải Phòng" placeholder="VD: Hải Phòng"></div>
       <div class="f"><label>Người nhận (xưng hô trong email)</label><input id="l_to" placeholder="VD: Anh Khôi / Chị Lan"></div>
       <div class="f"><label>Ngày nhận tạm ứng đợt 1</label><input type="date" id="l_adv"></div>
       <div class="f"><label>Điều khoản tính ngày (nêu trong email)</label><input id="l_clause" value="Điều 4.2 (a)"></div>
@@ -1311,7 +1312,10 @@ function addQElev(){
   normElevs();S.qElevs.push(newElev());
   // nếu chỉ có 1 đợt thì thang mới mặc định thuộc đợt đó (tránh bị bỏ sót)
   ensurePhases();
-  if(S.qPhases.length===1)S.qPhases[0].ids.push(S.qElevs.length-1);
+  if(S.qPhases.length===1){
+    const k=S.qElevs.length-1;
+    S.qPhases[0].steps.forEach(a=>{if(a&&a.indexOf(k)<0)a.push(k);});
+  }
   renderQElevs();renderQPhases();
 }
 function updateQCount(){
@@ -1321,12 +1325,17 @@ function updateQCount(){
   const sc=document.getElementById("q_scope");
   if(!sc)return;
   ensurePhases();
-  const parts=S.qPhases.map(p=>(p.label||"Đợt "+p.no)+": "+(phaseElevs(p).map(e=>e.name).join(", ")||"(chưa chọn thang)"));
-  const inAny=[];S.qPhases.forEach(p=>(p.ids||[]).forEach(i=>{if(inAny.indexOf(i)<0)inAny.push(i);}));
+  const parts=S.qPhases.map(p=>{
+    const ns=phaseSecs(p),full=ns.length===SECS.length;
+    return (p.label||"Đợt "+p.no)+": "+(phaseElevs(p).map(e=>e.name).join(", ")||"(chưa chọn thang)")
+      +(ns.length?(full?" – đủ 7 bước":" – bước "+ns.map(si=>ROMAN[si]).join(", ")):" – (chưa chọn bước)");
+  });
+  const inAny=[];S.qPhases.forEach(p=>phaseIds(p).forEach(i=>{if(inAny.indexOf(i)<0)inAny.push(i);}));
   const missing=S.qElevs.map((e,i)=>i).filter(i=>(S.qElevs[i].name||"").trim()&&inAny.indexOf(i)<0)
                         .map(i=>S.qElevs[i].name);
-  sc.textContent=!tot?"":(S.qPhases.length===1&&phaseElevs(S.qPhases[0]).length===tot
-    ?"Nghiệm thu 01 đợt cho TOÀN BỘ "+pad2(tot)+" thang máy của dự án."
+  const mot=S.qPhases.length===1&&phaseElevs(S.qPhases[0]).length===tot&&phaseSecs(S.qPhases[0]).length===SECS.length;
+  sc.textContent=!tot?"":(mot
+    ?"Nghiệm thu 01 đợt, đủ 7 bước cho TOÀN BỘ "+pad2(tot)+" thang máy của dự án."
     :"Bộ hồ sơ gồm "+pad2(S.qPhases.length)+" đợt — "+parts.join(" · "))
     +(missing.length?"  ⚠ Chưa xếp đợt cho: "+missing.join(", "):"");
 }
@@ -1495,7 +1504,11 @@ function tblPr(widths){
    Ưu tiên ít dòng nhất, sau đó chia cho cân đối -> nhìn gọn và chuyên nghiệp. */
 const CUM_TU=["ĐẠI DIỆN","CHỦ ĐẦU TƯ","BAN QUẢN LÝ","QUẢN LÝ","DỰ ÁN","TƯ VẤN","GIÁM SÁT",
   "TỔNG THẦU","NHÀ THẦU","THẦU PHỤ","THI CÔNG","LẮP ĐẶT","CUNG CẤP","THANG MÁY","THANG CUỐN",
-  "BĂNG TẢI","ĐƠN VỊ","KIỂM ĐỊNH","XÂY DỰNG","CƠ ĐIỆN","VẬN HÀNH","SỬ DỤNG","KỸ THUẬT"];
+  "BĂNG TẢI","ĐƠN VỊ","KIỂM ĐỊNH","XÂY DỰNG","CƠ ĐIỆN","VẬN HÀNH","SỬ DỤNG","KỸ THUẬT",
+  // tên doanh nghiệp
+  "TỔNG CÔNG TY","CÔNG TY","CHI NHÁNH","VĂN PHÒNG","CỔ PHẦN","TẬP ĐOÀN","TNHH MTV","TNHH",
+  "MỘT THÀNH VIÊN","VIỆT NAM","ĐẦU TƯ","THƯƠNG MẠI","DỊCH VỤ","PHÁT TRIỂN","BẤT ĐỘNG SẢN",
+  "HÀ NỘI","TP. HỒ CHÍ MINH","HỒ CHÍ MINH","ĐÀ NẴNG","HẢI PHÒNG"];
 function cumTu(s){
   const w=String(s||"").trim().split(/\s+/).filter(Boolean),out=[];
   for(let i=0;i<w.length;){
@@ -1532,6 +1545,11 @@ function xuongDong(text,wTwip){
 function wRunLines(lines,bold){
   return "<w:r>"+(bold?"<w:rPr><w:b/><w:bCs/></w:rPr>":"")
     +lines.map((t,i)=>(i?"<w:br/>":"")+'<w:t xml:space="preserve">'+xescQ(t)+"</w:t>").join("")+"</w:r>";
+}
+// header biểu mẫu: tên nhà thầu thi công thang máy, ngắt dòng theo bề rộng ô (4000 twip)
+function hdrCty(name){
+  return '<w:p><w:pPr><w:spacing w:line="264" w:lineRule="auto"/><w:jc w:val="center"/></w:pPr>'
+    +wRunLines(xuongDong((name||"…").toUpperCase(),4000),true)+'</w:p>';
 }
 // bảng chữ ký: mỗi ô là 1 bên, `cols` bên trên một hàng
 // khối ký cuối Phiếu đề nghị nghiệm thu — đơn vị lập phiếu (nhà thầu thang máy)
@@ -1593,6 +1611,37 @@ function cutBlock(doc,tokA,tokB,keep){
   const mid=doc.slice(a1,b0);
   return doc.slice(0,a0)+(keep?mid:"")+doc.slice(b1);
 }
+// tách vùng của 1 đợt thành 7 đoạn theo mốc {{SECn_BEGIN}} (mốc bị xoá khỏi kết quả)
+function splitSecs(tpl){
+  const at=[];
+  for(let n=1;n<=SECS.length;n++){
+    const i=tpl.indexOf("{{SEC"+n+"_BEGIN}}");
+    if(i<0)return null;
+    at.push(tpl.lastIndexOf("<w:p>",i));
+  }
+  const segs=at.map((a,n)=>tpl.slice(a,n+1<at.length?at[n+1]:tpl.length)
+                              .replace(/^<w:p><w:r><w:t>\{\{SEC\d+_BEGIN\}\}<\/w:t><\/w:r><\/w:p>/,""));
+  return {pre:tpl.slice(0,at[0]),segs:segs};
+}
+// điền 1 bước nghiệm thu: si = bước gốc (0..6), k = thứ tự thực tế trong đợt
+function fillSec(seg,si,k,p,parties){
+  const se=stepElevs(p,si),extras=(si===0||si===1)?S.qExtras:[];
+  let x=putBlock(seg,"{{BLOCK_TB"+(si+1)+"}}",tbRows(si+1,se,extras),true);
+  const coCuon=se.some(isCuon),coPccc=se.some(e=>e.type==="pccc");
+  x=putBlock(x,"{{BLOCK_KT_PCCC}}",coPccc?ktPcccRows():"",true);
+  x=putBlock(x,"{{BLOCK_KY_YC}}",sigYeuCau(parties));
+  x=putBlock(x,"{{BLOCK_TCNT}}",tcNtList(se,qv("q_nhasx")));
+  x=putBlock(x,"{{BLOCK_KT_HM}}",(coCuon?ktCuonRows():"")+ktHangMucRows(S.qExtras),true);
+  // ô "Tiêu chuẩn thi công – nghiệm thu áp dụng" trong Biên bản kiểm tra
+  if(coCuon)x=x.split("TCVN 6396-50:2017 (EN 81-50:2014).")
+               .join("TCVN 6396-50:2017 (EN 81-50:2014); TCVN 6397-1:2010 (EN 115-1:2008); QCVN 11:2012/BLĐTBXH.");
+  if(!coPccc)x=x.split("Chuyển sang chế độ vận hành ưu tiên cho lực lượng cứu hỏa")
+                .join("Không áp dụng - bước nghiệm thu này không có thang chữa cháy");
+  x=x.split("{{DS_THANG}}").join(xescQ(se.map(e=>e.name).join(", ")||"…"));
+  // đánh lại số La Mã theo các bước thực có trong đợt (không để nhảy số)
+  if(k!==si)x=x.replace(/(<w:t[^>]*>)PHẦN [IVX]+(<\/w:t>)/g,(m,a,c)=>a+"PHẦN "+ROMAN[k]+c);
+  return x;
+}
 function putBlock(doc,tok,xml,inRow){
   const tag=inRow?"w:tr":"w:p";
   const re=new RegExp("<"+tag+"\\b[^>]*>(?:(?!</"+tag+">)[\\s\\S])*?"+tok.replace(/[{}]/g,"\\$&")+"(?:(?!</"+tag+">)[\\s\\S])*?</"+tag+">","g");
@@ -1615,45 +1664,79 @@ const SECS=[
   {ma:"HTHM", ten:"HOÀN THÀNH HẠNG MỤC THANG MÁY ĐƯA VÀO SỬ DỤNG"}
 ];
 const ROMAN=["I","II","III","IV","V","VI","VII","VIII","IX","X"];
-function newPhase(n){return {no:pad2(n),label:"Đợt "+n,ids:[],htm:true};}
+const SEC_NGAN=["Vật liệu, thiết bị đầu vào","Lắp đặt tĩnh","Chạy thử đơn động không tải",
+  "Chạy thử đơn động có tải","Chạy thử liên động không tải","Chạy thử liên động có tải",
+  "Hoàn thành hạng mục & bàn giao"];
+const allIds=()=>S.qElevs.map((e,i)=>i);
+// mỗi đợt: steps[i] = mảng thang của bước i, null = đợt này không làm bước đó
+function newPhase(n,steps){return {no:pad2(n),label:"Đợt "+n,steps:steps||SECS.map(()=>[])};}
 function ensurePhases(){
-  if(!S.qPhases||!S.qPhases.length){
-    S.qPhases=[newPhase(1)];
-    S.qPhases[0].ids=S.qElevs.map((e,i)=>i);   // mặc định: 1 đợt gồm tất cả thang
-  }
+  if(!S.qPhases||!S.qPhases.length)
+    S.qPhases=[newPhase(1,SECS.map(()=>allIds()))];   // mặc định: 1 đợt, đủ 7 bước, đủ thang
   const max=S.qElevs.length;
-  S.qPhases.forEach(p=>{p.ids=(p.ids||[]).filter(i=>i<max);if(p.htm===undefined)p.htm=true;});
+  S.qPhases.forEach(p=>{
+    // dữ liệu cũ (ids + htm) -> mô hình bước
+    if(!Array.isArray(p.steps))
+      p.steps=SECS.map((s,i)=>(i===6&&p.htm===false)?null:(p.ids||allIds()).slice());
+    while(p.steps.length<SECS.length)p.steps.push(null);
+    p.steps=p.steps.map(a=>Array.isArray(a)?a.filter(i=>i<max).sort((x,y)=>x-y):null);
+    p.ids=phaseIds(p);p.htm=stepOn(p,6);
+  });
 }
-function phaseElevs(p){return (p.ids||[]).map(i=>S.qElevs[i]).filter(e=>e&&(e.name||"").trim());}
+function stepOn(p,si){return Array.isArray(p.steps&&p.steps[si]);}
+function stepIds(p,si){return stepOn(p,si)?p.steps[si]:[];}
+function stepElevs(p,si){return stepIds(p,si).map(i=>S.qElevs[i]).filter(e=>e&&(e.name||"").trim());}
+// thang của cả đợt = hợp của mọi bước trong đợt
+function phaseIds(p){const s=[];(p.steps||[]).forEach(a=>(a||[]).forEach(i=>{if(s.indexOf(i)<0)s.push(i);}));return s.sort((a,b)=>a-b);}
+function phaseSecs(p){return SECS.map((sc,si)=>si).filter(si=>stepOn(p,si));}
+function phaseElevs(p){return phaseIds(p).map(i=>S.qElevs[i]).filter(e=>e&&(e.name||"").trim());}
 function renderQPhases(){
   const box=document.getElementById("qphasesbox");if(!box)return;
   normElevs();ensurePhases();box.innerHTML="";
   S.qPhases.forEach((p,i)=>{
-    const chks=S.qElevs.map((e,k)=>`<label class="chk" style="text-transform:none;font-weight:500">
-      <input type="checkbox" ${(p.ids||[]).indexOf(k)>=0?"checked":""} onchange="togglePhaseElev(${i},${k},this.checked)">${esc(e.name||"(chưa đặt tên)")}</label>`).join(" ");
+    const rows=SECS.map((sc,si)=>{
+      const on=stepOn(p,si),ids=stepIds(p,si);
+      const chks=S.qElevs.map((e,k)=>`<label class="chk" style="text-transform:none;font-weight:500">
+        <input type="checkbox" ${ids.indexOf(k)>=0?"checked":""} ${on?"":"disabled"}
+          onchange="toggleStepElev(${i},${si},${k},this.checked)">${esc(e.name||"(chưa đặt tên)")}</label>`).join(" ");
+      return `<tr${on?"":' style="opacity:.45"'}>
+        <td style="width:26px;text-align:center">${ROMAN[si]}</td>
+        <td style="width:230px"><label class="chk" style="text-transform:none;font-weight:600">
+          <input type="checkbox" ${on?"checked":""} onchange="toggleStep(${i},${si},this.checked)">${esc(SEC_NGAN[si])}</label></td>
+        <td><div class="row" style="flex-wrap:wrap;gap:10px">${
+          S.qElevs.length?chks+(on?` <button class="btn gho sm" onclick="allStepElevs(${i},${si})">Tất cả</button>`:"")
+                         :"<i style='color:var(--muted);font-size:12px'>Chưa khai báo thang</i>"}</div></td></tr>`;
+    }).join("");
     const d=document.createElement("div");d.className="party";
-    d.innerHTML=`<div class="phead" style="grid-template-columns:90px 1.2fr 3fr 34px">
+    d.innerHTML=`<div class="phead" style="grid-template-columns:90px 1fr 34px">
         <div class="f" style="margin:0"><label>Số đợt</label><input value="${esc(p.no)}" onchange="S.qPhases[${i}].no=this.value" placeholder="01"></div>
         <div class="f" style="margin:0"><label>Tên đợt</label><input value="${esc(p.label)}" onchange="S.qPhases[${i}].label=this.value"></div>
-        <div class="f" style="margin:0"><label>Thang nghiệm thu trong đợt</label><div class="row" style="flex-wrap:wrap;gap:12px;padding-top:6px">${chks||"<i style='color:var(--muted);font-size:12px'>Chưa khai báo thang</i>"}</div></div>
         <button class="icb" title="Xóa đợt" onclick="S.qPhases.splice(${i},1);renderQPhases()">✕</button>
       </div>
-      <label class="chk" style="display:inline-block;margin-top:10px"><input type="checkbox" ${p.htm?"checked":""} onchange="S.qPhases[${i}].htm=this.checked;updateQCount()">Đợt này có nghiệm thu hoàn thành hạng mục &amp; bàn giao thiết bị</label>`;
+      <table class="edit" style="margin-top:8px"><thead><tr><th></th><th>Bước nghiệm thu trong đợt</th><th>Thang được nghiệm thu ở bước này</th></tr></thead><tbody>${rows}</tbody></table>`;
     box.appendChild(d);
   });
   const c=document.getElementById("qphasecount");if(c)c.textContent=S.qPhases.length;
   updateQCount();
 }
-function togglePhaseElev(pi,ei,on){
-  const ids=S.qPhases[pi].ids||(S.qPhases[pi].ids=[]);
-  const k=ids.indexOf(ei);
-  if(on&&k<0)ids.push(ei); else if(!on&&k>=0)ids.splice(k,1);
-  ids.sort((a,b)=>a-b);updateQCount();
+function toggleStep(pi,si,on){
+  const p=S.qPhases[pi];
+  p.steps[si]=on?allIds():null;   // bật bước -> mặc định đủ thang, bỏ bớt sau
+  renderQPhases();
 }
+function toggleStepElev(pi,si,ei,on){
+  const a=S.qPhases[pi].steps[si];if(!a)return;
+  const k=a.indexOf(ei);
+  if(on&&k<0)a.push(ei); else if(!on&&k>=0)a.splice(k,1);
+  a.sort((x,y)=>x-y);S.qPhases[pi].ids=phaseIds(S.qPhases[pi]);updateQCount();
+}
+function allStepElevs(pi,si){S.qPhases[pi].steps[si]=allIds();renderQPhases();}
 function addQPhase(){
-  ensurePhases();S.qPhases.push(newPhase(S.qPhases.length+1));
-  // mặc định: chỉ đợt cuối nghiệm thu hoàn thành & bàn giao (sửa lại được)
-  S.qPhases.forEach((p,i)=>{p.htm=(i===S.qPhases.length-1);});
+  ensurePhases();
+  // đợt mới mặc định gồm các bước chưa nghiệm thu ở đợt trước; hết bước thì để trống
+  const daLam={};S.qPhases.forEach(p=>SECS.forEach((s,si)=>{if(stepOn(p,si))daLam[si]=1;}));
+  const conLai=SECS.map((s,si)=>daLam[si]?null:allIds());
+  S.qPhases.push(newPhase(S.qPhases.length+1,conLai.some(Boolean)?conLai:SECS.map(()=>null)));
   renderQPhases();
 }
 
@@ -1681,10 +1764,10 @@ function dmRow(stt,ma,ten,so){
 function buildDanhMuc(mahs,phases){
   let out="",stt=0;
   phases.forEach(p=>{
-    const els=phaseElevs(p).map(e=>e.name).join(", ");
-    SECS.forEach((sc,si)=>{   // mỗi đợt lặp lại PHẦN I..VII, khớp với thân hồ sơ
-      if(sc.ma==="HTHM"&&p.htm===false)return;   // đợt này không nghiệm thu hoàn thành
-      out+=dmGroup(ROMAN[si],sc.ten+(phases.length>1?" — "+(p.label||"Đợt "+p.no).toUpperCase()+(els?" ("+els+")":""):""));
+    // chỉ liệt kê các bước đợt này thực sự nghiệm thu, đánh số La Mã liên tục
+    phaseSecs(p).forEach((si,k)=>{
+      const sc=SECS[si],els=stepElevs(p,si).map(e=>e.name).join(", ");
+      out+=dmGroup(ROMAN[k],sc.ten+(phases.length>1?" — "+(p.label||"Đợt "+p.no).toUpperCase():"")+(els?" ("+els+")":""));
       [["YCNT","Phiếu đề nghị nghiệm thu"],["BBNT","Biên bản nghiệm thu công việc"],
        ["BBKT","Biên bản kiểm tra công tác nghiệm thu công việc"]].forEach(d=>{
         out+=dmRow(++stt,d[0],d[1],mahs+"/"+d[0]+"/"+sc.ma+"/"+p.no);
@@ -1692,7 +1775,7 @@ function buildDanhMuc(mahs,phases){
     });
   });
   const dsAll=S.qElevs.filter(e=>(e.name||"").trim()).map(e=>e.name).join(", ");
-  const dsBBG=phases.filter(p=>p.htm!==false);
+  const dsBBG=phases.filter(p=>stepOn(p,6));
   out+=dmGroup(ROMAN[7],"HỒ SƠ KIỂM ĐỊNH KỸ THUẬT AN TOÀN THANG MÁY");
   [["BBKĐ","Biên bản kiểm định kỹ thuật an toàn thang máy ("+dsAll+")"],
    ["GCNKĐ","Giấy chứng nhận kết quả kiểm định kỹ thuật an toàn"],
@@ -1708,7 +1791,7 @@ function buildDanhMuc(mahs,phases){
   if(dsBBG.length){
     out+=dmGroup(ROMAN[9],"BIÊN BẢN BÀN GIAO THIẾT BỊ");
     dsBBG.forEach(p=>{
-      const els2=phaseElevs(p).map(e=>e.name).join(", ");
+      const els2=stepElevs(p,6).map(e=>e.name).join(", ");
       out+=dmRow(++stt,"BBBG","Biên bản bàn giao thiết bị"+(phases.length>1?" — "+(p.label||"Đợt "+p.no)+(els2?" ("+els2+")":""):""),
                  mahs+"/BBBG/"+p.no);
     });
@@ -2005,23 +2088,12 @@ async function exportQuality(){
       const newParts=footerParts;
       let body="";
       phases.forEach((p,pi)=>{
-        const pe=phaseElevs(p), pNames=pe.map(e=>e.name).join(", ")||"…";
-        let x=bodyTpl;
-        for(let sec=1;sec<=7;sec++)
-          x=putBlock(x,"{{BLOCK_TB"+sec+"}}",tbRows(sec,pe,(sec===1||sec===2)?S.qExtras:[]),true);
-        // tiêu chí riêng thang chữa cháy: chỉ khi đợt này có thang PCCC
-        const peCuon=pe.some(isCuon);
-        x=putBlock(x,"{{BLOCK_KT_PCCC}}",pe.some(e=>e.type==="pccc")?ktPcccRows():"",true);
-        x=putBlock(x,"{{BLOCK_KY_YC}}",sigYeuCau(parties));
-        x=putBlock(x,"{{BLOCK_TCNT}}",tcNtList(pe,qv("q_nhasx")));
-        x=putBlock(x,"{{BLOCK_KT_HM}}",(peCuon?ktCuonRows():"")+ktHangMucRows(S.qExtras),true);
-        // ô "Tiêu chuẩn thi công – nghiệm thu áp dụng" trong Biên bản kiểm tra
-        if(peCuon)x=x.split("TCVN 6396-50:2017 (EN 81-50:2014).")
-                     .join("TCVN 6396-50:2017 (EN 81-50:2014); TCVN 6397-1:2010 (EN 115-1:2008); QCVN 11:2012/BLĐTBXH.");
-        // nếu đợt này không có thang chữa cháy thì ghi rõ không áp dụng
-        if(!pe.some(e=>e.type==="pccc"))
-          x=x.split("Chuyển sang chế độ vận hành ưu tiên cho lực lượng cứu hỏa")
-             .join("Không áp dụng - đợt nghiệm thu này không có thang chữa cháy");
+        // tách vùng 1 đợt thành 7 bước, mỗi bước điền theo danh sách thang riêng của bước
+        const secs=splitSecs(bodyTpl);
+        const chon=phaseSecs(p);
+        let x=secs.pre+chon.map((si,k)=>fillSec(secs.segs[si],si,k,p,parties)).join("");
+        // phần ngoài các bước (nếu có) lấy danh sách thang của cả đợt
+        x=x.split("{{DS_THANG}}").join(xescQ(phaseElevs(p).map(e=>e.name).join(", ")||"…"));
         const dotVal=p.no||pad2(pi+1);
         // đợt đầu dùng luôn footer gốc; các đợt sau nhân bản footer với số đợt riêng
         if(pi===0){
@@ -2050,10 +2122,7 @@ async function exportQuality(){
             x=x.replace(new RegExp('(<w:footerReference[^>]*)r:id="'+rid+'"','g'),'$1r:id="'+nid+'"');
           });
         }
-        // đợt không nghiệm thu hoàn thành thì bỏ PHẦN VII khỏi đợt đó
-        x=cutBlock(x,"{{HTHM_BEGIN}}","{{HTHM_END}}",p.htm!==false);
         x=x.split("{{DOT}}").join(xescQ(dotVal));
-        x=x.split("{{DS_THANG}}").join(xescQ(pNames));
         if(phases.length>1)
           x=x.replace(/(<w:t[^>]*>)PHẦN ([IVX]+)(<\/w:t>)/g,
                       (m,a2,r,c2)=>a2+"PHẦN "+r+" – "+xescQ((p.label||"ĐỢT "+p.no).toUpperCase())+c2);
@@ -2072,7 +2141,7 @@ async function exportQuality(){
       // đoạn mốc {{BBG_BEGIN}} mang sectPr của phần trước -> giữ lại để đóng section đó
       const pPrA=(doc.slice(a0,a1).match(/<w:pPr>[\s\S]*?<\/w:pPr>/)||[""])[0];
       const brkPrev=pPrA?"<w:p>"+pPrA+"</w:p>":"";
-      const dsBBG=phases.filter(p=>p.htm!==false);
+      const dsBBG=phases.filter(p=>stepOn(p,6));
       // footer của biên bản bàn giao: mỗi đợt một bản mang số đợt riêng
       let relsB=await zip.file("word/_rels/document.xml.rels").async("string");
       let ctB=await zip.file("[Content_Types].xml").async("string");
@@ -2084,7 +2153,7 @@ async function exportQuality(){
       let maxB=0;for(const m of relsB.matchAll(/Id="rId(\d+)"/g))maxB=Math.max(maxB,+m[1]);
       let bbg="";
       dsBBG.forEach((p,k)=>{
-        const pe=phaseElevs(p);
+        const pe=stepElevs(p,6);
         const uniq=a=>a.filter((v,i)=>v&&a.indexOf(v)===i).join("; ")||"…";
         let y=tpl;
         const M={
@@ -2137,6 +2206,8 @@ async function exportQuality(){
       zip.file("[Content_Types].xml",ctB);
     }
     // danh mục tiêu chuẩn áp dụng: theo loại thiết bị thực có trong hồ sơ
+    // header các biểu mẫu mang tên nhà thầu thi công thang máy
+    doc=putBlock(doc,"{{BLOCK_HDR}}",hdrCty(nhaThau));
     doc=putBlock(doc,"{{BLOCK_TCAD}}",tcList(els,qv("q_nhasx"),qv("q_mabanve")));
     // danh mục hồ sơ: gộp đầy đủ mọi đợt
     doc=putBlock(doc,"{{BLOCK_DM}}",buildDanhMuc(map["{{MA_HS}}"],phases),true);
@@ -2210,7 +2281,8 @@ async function exportLetter(){
       "{{NGAY_MAT_BANG}}":isoToVN(lv("l_site")),
       "{{NGAY_THU}}":isoToVN(lv("l_date")),
       "{{NGUOI_GUI}}":lv("l_from"),
-      "{{SL_THANG}}":lv("l_qty")||"01"
+      "{{SL_THANG}}":lv("l_qty")||"01",
+      "{{CANG}}":lv("l_cang")||"Hải Phòng"
     };
     for(const k in map)doc=doc.split(k).join(xescQ(map[k]));
     zip.file("word/document.xml",doc);
