@@ -54,7 +54,9 @@ input[type=checkbox],input[type=radio]{width:auto}
 .party .chk{font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:700;white-space:nowrap}
 .party .chk input{margin-right:5px;vertical-align:-1px}
 .party table.edit{margin-top:12px}
+.party .phead.dot{grid-template-columns:90px 1fr 34px}
 @media(max-width:900px){.party .phead{grid-template-columns:1fr}}
+@media(max-width:760px){.party .phead.dot{grid-template-columns:72px 1fr 32px;gap:8px}}
 .emailbox{border:1px solid var(--line);border-radius:8px;padding:20px 22px;background:#fff;font-family:Calibri,Arial,sans-serif;font-size:13.5px;line-height:1.55;color:#17212f;max-height:520px;overflow:auto}
 .emailbox p{margin:0 0 9px}
 .emailbox ul{margin:0 0 9px 20px}
@@ -511,12 +513,17 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font
     </div>
 
     <h2 style="font-size:15px;margin-top:22px"><span class="no" style="background:var(--navy)">D2</span>Hạng mục khác (tuỳ chọn)</h2>
-    <p class="hint">Các hạng mục ngoài thang máy đưa vào bảng khối lượng nghiệm thu: đà thép, bản mã, gối đôn, khối lượng phát sinh theo phụ lục…</p>
+    <p class="hint">Các hạng mục ngoài thang máy đưa vào bảng khối lượng nghiệm thu. Ba hạng mục hay gặp đã có sẵn diễn giải và <b>bộ tiêu chí tương ứng trong Biên bản kiểm tra</b> — bấm nút để thêm, sửa lại được. Hạng mục khác thì bấm “Thêm hạng mục” và tự nhập.</p>
     <div class="tblwrap"><table class="edit" style="margin-top:8px;min-width:640px">
       <thead><tr><th style="width:28px">#</th><th>Tên hạng mục</th><th>Diễn giải</th><th style="width:70px">ĐVT</th><th style="width:60px">SL</th><th style="width:110px">Xuất xứ</th><th style="width:32px"></th></tr></thead>
       <tbody id="qextrasbody"></tbody>
     </table></div>
-    <div class="row" style="margin-top:10px"><button class="btn gho sm" onclick="addQExtra()">+ Thêm hạng mục</button></div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn gho sm" onclick="addQExtraMau('dathep')">+ Đà thép</button>
+      <button class="btn gho sm" onclick="addQExtraMau('dieuhoa')">+ Điều hòa thang máy</button>
+      <button class="btn gho sm" onclick="addQExtraMau('noithat')">+ Nội thất cabin</button>
+      <button class="btn gho sm" onclick="addQExtra()">+ Thêm hạng mục khác</button>
+    </div>
   </div>
 
   <div class="panel">
@@ -1396,6 +1403,21 @@ function updateQCount(){
 const TBW=[520,1714,3229,569,679,1049,946,932];
 // mô tả riêng của từng phần (1..7)
 function tbPrefix(sec,e){
+  // thang cuốn / băng tải chở người có cấu tạo khác hẳn thang máy
+  if(isCuon(e)){
+    const bt=e.type==="bangtai",ten=bt?"băng tải":"thang cuốn";
+    const tt=e.stepw?"tải trọng thiết kế theo bề rộng "+(bt?"tấm nền":"bậc")+" "+e.stepw+" mm"
+                    :"tải trọng thiết kế của nhà sản xuất";
+    return [null,
+      "",
+      "- Lắp đặt tĩnh: giàn "+ten+" và gối đỡ hai đầu, máy dẫn động, xích kéo và "
+        +(bt?"tấm nền":"bậc thang")+", lan can, tay vịn, tấm ốp thành, tủ điều khiển và hệ thống điện",
+      "- Chạy thử đơn động không tải: máy dẫn động, phanh, xích kéo, tay vịn, thiết bị an toàn",
+      "- Chạy thử đơn động có tải ("+tt+")",
+      "- Chạy thử liên động không tải toàn hệ thống, đồng bộ với hệ thống kỹ thuật công trình",
+      "- Chạy thử liên động có tải toàn hệ thống ("+tt+")",
+      "- Cung cấp, lắp đặt, hiệu chỉnh, kiểm định hoàn chỉnh"][sec];
+  }
   const ld=e.load?e.load+" kg":"tải định mức";
   return [null,
     "",
@@ -1417,7 +1439,8 @@ function tbRows(sec,elevs,extras){
     k++;
     const desc=[];
     const pre=tbPrefix(sec,e);if(pre)desc.push(pre);
-    desc.push("- "+elevLabel(e)+(e.model?" "+e.model:""));
+    // với thang cuốn, nhãn loại trùng luôn tên ở cột bên -> chỉ ghi khi có model
+    if(!isCuon(e)||e.model)desc.push("- "+elevLabel(e)+(e.model?" "+e.model:""));
     if(isCuon(e)){
       if(e.rise)desc.push("- Chiều cao nâng: "+e.rise+" m");
       if(e.angle)desc.push("- Góc nghiêng: "+e.angle+"°");
@@ -1462,6 +1485,27 @@ function renderQExtras(){
   });
 }
 function addQExtra(){S.qExtras=S.qExtras||[];S.qExtras.push({name:"",desc:"",unit:"",qty:"",origin:""});renderQExtras();}
+/* Hạng mục bổ sung hay gặp: điền sẵn diễn giải, đơn vị, xuất xứ.
+   Tên đã khớp với bộ tiêu chí HM_CRIT nên Biên bản kiểm tra tự có mục tương ứng. */
+const HM_MAU={
+ dathep:{nut:"Đà thép",name:"Đà thép ngăn hố thang và bản mã đỡ ray",unit:"Bộ",origin:"Việt Nam",
+   desc:["- Đà thép hình theo bản vẽ kết cấu được duyệt",
+         "- Bản mã đỡ ray, gối đôn, bu lông nở liên kết vào kết cấu công trình",
+         "- Gia công, lắp dựng, sơn chống gỉ hoàn thiện"]},
+ dieuhoa:{nut:"Điều hòa thang máy",name:"Điều hòa phòng máy thang máy",unit:"Bộ",origin:"Việt Nam",
+   desc:["- Máy điều hòa cho phòng máy, chạy liên tục, duy trì nhiệt độ theo khuyến cáo nhà sản xuất thang",
+         "- Dàn nóng, dàn lạnh, giá đỡ, ống đồng, bảo ôn, thoát nước ngưng",
+         "- Cấp nguồn, aptomat bảo vệ riêng và tiếp địa"]},
+ noithat:{nut:"Nội thất cabin",name:"Nội thất cabin thang máy",unit:"Bộ",origin:"Việt Nam",
+   desc:["- Ốp vách, trần, sàn cabin theo mẫu được duyệt",
+         "- Tay vịn, gương, đèn chiếu sáng, quạt thông gió",
+         "- Bảng điều khiển trong cabin (COP) và hiển thị"]}};
+function addQExtraMau(k){
+  const m=HM_MAU[k];if(!m)return;
+  S.qExtras=S.qExtras||[];
+  S.qExtras.push({name:m.name,desc:m.desc.join("\n"),unit:m.unit,qty:"",origin:m.origin});
+  renderQExtras();
+}
 // dd/mm/yyyy  và  "dd tháng m năm yyyy"
 function vnDate(iso){if(!iso)return"";const p=iso.split("-");return p.length===3?p[2]+"/"+p[1]+"/"+p[0]:iso;}
 function vnDateLong(iso){if(!iso)return"";const p=iso.split("-");return p.length===3?"ngày "+p[2]+" tháng "+(+p[1])+" năm "+p[0]:iso;}
@@ -1778,7 +1822,7 @@ function renderQPhases(){
                          :"<i style='color:var(--muted);font-size:12px'>Chưa khai báo thang</i>"}</div></td></tr>`;
     }).join("");
     const d=document.createElement("div");d.className="party";
-    d.innerHTML=`<div class="phead" style="grid-template-columns:90px 1fr 34px">
+    d.innerHTML=`<div class="phead dot">
         <div class="f" style="margin:0"><label>Số đợt</label><input value="${esc(p.no)}" onchange="S.qPhases[${i}].no=this.value" placeholder="01"></div>
         <div class="f" style="margin:0"><label>Tên đợt</label><input value="${esc(p.label)}" onchange="S.qPhases[${i}].label=this.value"></div>
         <button class="icb" title="Xóa đợt" onclick="S.qPhases.splice(${i},1);renderQPhases()">✕</button>
