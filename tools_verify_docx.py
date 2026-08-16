@@ -45,10 +45,15 @@ def check(path, expect=None):
     if used - have:
         errs.append("r:id không có trong rels: %s" % sorted(used - have))
 
-    # 4) token/marker còn sót
-    left = sorted(set(re.findall(r'\{\{[A-Z0-9_]+\}\}', txt)))
+    # 4) token/marker còn sót — soi MỌI part, không chỉ document.xml
+    left = set(re.findall(r'\{\{[A-Z0-9_]+\}\}', txt))
+    for n in names:
+        if n.endswith('.xml') and n.startswith('word/'):
+            t2 = html.unescape(''.join(re.findall(r'<w:t[^>]*>([^<]*)</w:t>', z.read(n).decode('utf8'))))
+            for k in re.findall(r'\{\{[A-Z0-9_]+\}\}', t2):
+                left.add(k + ' @' + n.split('/')[-1])
     if left:
-        errs.append("còn token chưa thay: %s" % left)
+        errs.append("còn token chưa thay: %s" % sorted(left))
 
     # 5) chuỗi lỗi lập trình lọt vào văn bản
     for bad in ('undefined', 'NaN', '[object Object]', 'null,'):

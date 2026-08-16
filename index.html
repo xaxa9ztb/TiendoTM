@@ -412,6 +412,22 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font
   </div>
 
   <div class="panel">
+    <h2 style="font-size:16px"><span class="no" style="background:var(--navy)">B2</span>Thông tin cho Biên bản bàn giao</h2>
+    <p class="hint">Dùng riêng cho Biên bản bàn giao thiết bị (mẫu song ngữ) ở cuối bộ hồ sơ. Để trống thì in dấu chấm để điền tay.</p>
+    <div class="grid g2">
+      <div class="f"><label>Địa chỉ Chủ đầu tư / Bên Mua</label><input id="q_cdt_diachi"></div>
+      <div class="f"><label>Người đại diện Bên Mua</label><input id="q_cdt_daidien"></div>
+      <div class="f"><label>Giấy tờ pháp lý Bên Mua (CCCD/ĐKKD)</label><input id="q_cdt_giayto"></div>
+      <div class="f"><label>Điện thoại Bên Mua</label><input id="q_cdt_dt"></div>
+      <div class="f"><label>Địa chỉ Nhà thầu / Bên Bán</label><input id="q_nt_diachi"></div>
+      <div class="f"><label>Điện thoại / Fax Nhà thầu</label><input id="q_nt_lienhe"></div>
+      <div class="f"><label>Người đại diện Bên Bán</label><input id="q_nt_daidien"></div>
+      <div class="f"><label>Chức vụ người đại diện Bên Bán</label><input id="q_nt_chucvu"></div>
+      <div class="f"><label>Thời gian bảo hành (tháng)</label><input id="q_baohanh" value="12"></div>
+    </div>
+  </div>
+
+  <div class="panel">
     <h2 style="font-size:16px"><span class="no" style="background:var(--navy)">C</span>Hợp đồng &amp; tài liệu căn cứ</h2>
     <div class="grid g2">
       <div class="f"><label>Số hợp đồng</label><input id="q_sohd"></div>
@@ -1501,6 +1517,15 @@ function nnRows(list,nam){
     +'</w:tr>').join("");
 }
 // thay marker nằm trong 1 đoạn <w:p> (hoặc 1 dòng <w:tr>) bằng XML sinh ra
+// giữ (keep=true) hoặc bỏ vùng nằm giữa 2 marker; luôn xoá 2 đoạn marker
+function cutBlock(doc,tokA,tokB,keep){
+  const pA=doc.indexOf(tokA),pB=doc.indexOf(tokB);
+  if(pA<0||pB<0)return doc;
+  const a0=doc.lastIndexOf("<w:p",pA),a1=doc.indexOf("</w:p>",pA)+6;
+  const b0=doc.lastIndexOf("<w:p",pB),b1=doc.indexOf("</w:p>",pB)+6;
+  const mid=doc.slice(a1,b0);
+  return doc.slice(0,a0)+(keep?mid:"")+doc.slice(b1);
+}
 function putBlock(doc,tok,xml,inRow){
   const tag=inRow?"w:tr":"w:p";
   const re=new RegExp("<"+tag+"\\b[^>]*>(?:(?!</"+tag+">)[\\s\\S])*?"+tok.replace(/[{}]/g,"\\$&")+"(?:(?!</"+tag+">)[\\s\\S])*?</"+tag+">","g");
@@ -1523,14 +1548,14 @@ const SECS=[
   {ma:"HTHM", ten:"HOÀN THÀNH HẠNG MỤC THANG MÁY ĐƯA VÀO SỬ DỤNG"}
 ];
 const ROMAN=["I","II","III","IV","V","VI","VII","VIII","IX","X"];
-function newPhase(n){return {no:pad2(n),label:"Đợt "+n,ids:[]};}
+function newPhase(n){return {no:pad2(n),label:"Đợt "+n,ids:[],htm:true};}
 function ensurePhases(){
   if(!S.qPhases||!S.qPhases.length){
     S.qPhases=[newPhase(1)];
     S.qPhases[0].ids=S.qElevs.map((e,i)=>i);   // mặc định: 1 đợt gồm tất cả thang
   }
   const max=S.qElevs.length;
-  S.qPhases.forEach(p=>{p.ids=(p.ids||[]).filter(i=>i<max);});
+  S.qPhases.forEach(p=>{p.ids=(p.ids||[]).filter(i=>i<max);if(p.htm===undefined)p.htm=true;});
 }
 function phaseElevs(p){return (p.ids||[]).map(i=>S.qElevs[i]).filter(e=>e&&(e.name||"").trim());}
 function renderQPhases(){
@@ -1545,7 +1570,8 @@ function renderQPhases(){
         <div class="f" style="margin:0"><label>Tên đợt</label><input value="${esc(p.label)}" onchange="S.qPhases[${i}].label=this.value"></div>
         <div class="f" style="margin:0"><label>Thang nghiệm thu trong đợt</label><div class="row" style="flex-wrap:wrap;gap:12px;padding-top:6px">${chks||"<i style='color:var(--muted);font-size:12px'>Chưa khai báo thang</i>"}</div></div>
         <button class="icb" title="Xóa đợt" onclick="S.qPhases.splice(${i},1);renderQPhases()">✕</button>
-      </div>`;
+      </div>
+      <label class="chk" style="display:inline-block;margin-top:10px"><input type="checkbox" ${p.htm?"checked":""} onchange="S.qPhases[${i}].htm=this.checked;updateQCount()">Đợt này có nghiệm thu hoàn thành hạng mục &amp; bàn giao thiết bị</label>`;
     box.appendChild(d);
   });
   const c=document.getElementById("qphasecount");if(c)c.textContent=S.qPhases.length;
@@ -1557,7 +1583,12 @@ function togglePhaseElev(pi,ei,on){
   if(on&&k<0)ids.push(ei); else if(!on&&k>=0)ids.splice(k,1);
   ids.sort((a,b)=>a-b);updateQCount();
 }
-function addQPhase(){ensurePhases();S.qPhases.push(newPhase(S.qPhases.length+1));renderQPhases();}
+function addQPhase(){
+  ensurePhases();S.qPhases.push(newPhase(S.qPhases.length+1));
+  // mặc định: chỉ đợt cuối nghiệm thu hoàn thành & bàn giao (sửa lại được)
+  S.qPhases.forEach((p,i)=>{p.htm=(i===S.qPhases.length-1);});
+  renderQPhases();
+}
 
 /* ---------- Danh mục hồ sơ: gộp đầy đủ mọi đợt ---------- */
 const DMW=[614,993,3339,2218,1300,1174];
@@ -1585,6 +1616,7 @@ function buildDanhMuc(mahs,phases){
   phases.forEach(p=>{
     const els=phaseElevs(p).map(e=>e.name).join(", ");
     SECS.forEach((sc,si)=>{   // mỗi đợt lặp lại PHẦN I..VII, khớp với thân hồ sơ
+      if(sc.ma==="HTHM"&&p.htm===false)return;   // đợt này không nghiệm thu hoàn thành
       out+=dmGroup(ROMAN[si],sc.ten+(phases.length>1?" — "+(p.label||"Đợt "+p.no).toUpperCase()+(els?" ("+els+")":""):""));
       [["YCNT","Phiếu đề nghị nghiệm thu"],["BBNT","Biên bản nghiệm thu công việc"],
        ["BBKT","Biên bản kiểm tra công tác nghiệm thu công việc"]].forEach(d=>{
@@ -1593,6 +1625,7 @@ function buildDanhMuc(mahs,phases){
     });
   });
   const dsAll=S.qElevs.filter(e=>(e.name||"").trim()).map(e=>e.name).join(", ");
+  const dsBBG=phases.filter(p=>p.htm!==false);
   out+=dmGroup(ROMAN[7],"HỒ SƠ KIỂM ĐỊNH KỸ THUẬT AN TOÀN THANG MÁY");
   [["BBKĐ","Biên bản kiểm định kỹ thuật an toàn thang máy ("+dsAll+")"],
    ["GCNKĐ","Giấy chứng nhận kết quả kiểm định kỹ thuật an toàn"],
@@ -1604,6 +1637,15 @@ function buildDanhMuc(mahs,phases){
   out+='<w:tr>'+dmCell(DMW[0],String(++stt),1)+dmCell(DMW[1],"BVHC",1)
     +dmCell(DMW[2],"Bản vẽ hoàn công hệ thống thang máy "+dsAll+" và các hạng mục kèm theo")
     +dmCell(DMW[3],".....................",1)+dmCell(DMW[4],".....................",1)+dmCell(DMW[5],"")+'</w:tr>';
+  // Biên bản bàn giao nằm cuối bộ hồ sơ (PHẦN X)
+  if(dsBBG.length){
+    out+=dmGroup(ROMAN[9],"BIÊN BẢN BÀN GIAO THIẾT BỊ");
+    dsBBG.forEach(p=>{
+      const els2=phaseElevs(p).map(e=>e.name).join(", ");
+      out+=dmRow(++stt,"BBBG","Biên bản bàn giao thiết bị"+(phases.length>1?" — "+(p.label||"Đợt "+p.no)+(els2?" ("+els2+")":""):""),
+                 mahs+"/BBBG/"+p.no);
+    });
+  }
   return out;
 }
 
@@ -1771,12 +1813,10 @@ const CUON_VANHANH=[
  ["Biển báo, chỉ dẫn an toàn cho hành khách","Quan sát","Đầy đủ, đúng vị trí, dễ nhìn tại hai đầu thang"],
  ["Hồ sơ kiểm định kỹ thuật an toàn","Hồ sơ","Kiểm định theo QCVN 11:2012/BLĐTBXH trước khi đưa vào sử dụng"]
 ];
-function ktCuonRows(kind){
-  const L=kind==="lapdat"?CUON_LAPDAT:CUON_VANHANH;
-  let out=ktGroup("TC. "+(kind==="lapdat"
-      ?"YÊU CẦU LẮP ĐẶT THANG CUỐN / BĂNG TẢI CHỞ NGƯỜI (TCVN 6397-1:2010 / EN 115-1)"
-      :"KIỂM TRA VẬN HÀNH VÀ THIẾT BỊ AN TOÀN THANG CUỐN (TCVN 6397-1:2010 / EN 115-1)"));
-  L.forEach((c,i)=>{out+=ktRow(i+1,c[0],c[1],c[2]);});
+// một mục lớn duy nhất cho thang cuốn trong bảng kiểm tra
+function ktCuonRows(){
+  let out=ktGroup("TC. THANG CUỐN / BĂNG TẢI CHỞ NGƯỜI (TCVN 6397-1:2010 / EN 115-1)"),n=0;
+  CUON_LAPDAT.concat(CUON_VANHANH).forEach(c=>{out+=ktRow(++n,c[0],c[1],c[2]);});
   return out;
 }
 
@@ -1834,6 +1874,18 @@ async function exportQuality(){
       "{{THANG2}}":names[1]||names[0]||"02",
       "{{MA_HS}}":qv("q_mahs")||"HS",
       "{{NHA_SX}}":qv("q_nhasx")||"…",
+      "{{CHU_DAU_TU_HOA}}":(pName(/chủ đầu tư/i)||dash).toUpperCase(),
+      "{{CDT_DIACHI}}":qv("q_cdt_diachi")||dash,
+      "{{CDT_GIAYTO}}":qv("q_cdt_giayto")||dash,
+      "{{CDT_DIENTHOAI}}":qv("q_cdt_dt")||dash,
+      "{{CDT_DAIDIEN}}":qv("q_cdt_daidien")||dash,
+      "{{CDT_DAIDIEN_HOA}}":(qv("q_cdt_daidien")||dash).toUpperCase(),
+      "{{NT_DIACHI}}":qv("q_nt_diachi")||dash,
+      "{{NT_LIENHE}}":qv("q_nt_lienhe")||dash,
+      "{{NT_DAIDIEN}}":qv("q_nt_daidien")||dash,
+      "{{NT_DAIDIEN_HOA}}":(qv("q_nt_daidien")||dash).toUpperCase(),
+      "{{NT_CHUCVU}}":qv("q_nt_chucvu")||dash,
+      "{{DIA_DANH}}":qv("q_diadanh")||"…",
       "{{QUYEN_SO}}":qv("q_quyenso")||"01/01",
       "{{DIA_DANH_HOA}}":(qv("q_diadanh")||"").toUpperCase()||"…",
       "{{NAM}}":qv("q_nam")||String(new Date().getFullYear())
@@ -1861,6 +1913,7 @@ async function exportQuality(){
     // ----- nhân bản phần I..VII cho từng đợt nghiệm thu -----
     const mB="{{PHASE_BEGIN}}",mE="{{PHASE_END}}";
     let footerParts={};                      // các part footer cần ghi lại
+    const bbgMap={};                         // số đợt -> rId footer biên bản bàn giao
     const iB=doc.indexOf(mB),iE=doc.indexOf(mE);
     if(iB>=0&&iE>iB){
       const pB=doc.lastIndexOf("<w:p",iB), pBe=doc.indexOf("</w:p>",iB)+6;
@@ -1890,11 +1943,9 @@ async function exportQuality(){
           x=putBlock(x,"{{BLOCK_TB"+sec+"}}",tbRows(sec,pe,(sec===1||sec===2)?S.qExtras:[]),true);
         // tiêu chí riêng thang chữa cháy: chỉ khi đợt này có thang PCCC
         const peCuon=pe.some(isCuon);
-        x=putBlock(x,"{{BLOCK_KT_PCCC}}",
-            (pe.some(e=>e.type==="pccc")?ktPcccRows():"")+(peCuon?ktCuonRows("vanhanh"):""),true);
+        x=putBlock(x,"{{BLOCK_KT_PCCC}}",pe.some(e=>e.type==="pccc")?ktPcccRows():"",true);
         x=putBlock(x,"{{BLOCK_TCNT}}",tcNtList(pe,qv("q_nhasx")));
-        x=putBlock(x,"{{BLOCK_KT_HM}}",
-            (peCuon?ktCuonRows("lapdat"):"")+ktHangMucRows(S.qExtras),true);
+        x=putBlock(x,"{{BLOCK_KT_HM}}",(peCuon?ktCuonRows():"")+ktHangMucRows(S.qExtras),true);
         // ô "Tiêu chuẩn thi công – nghiệm thu áp dụng" trong Biên bản kiểm tra
         if(peCuon)x=x.split("TCVN 6396-50:2017 (EN 81-50:2014).")
                      .join("TCVN 6396-50:2017 (EN 81-50:2014); TCVN 6397-1:2010 (EN 115-1:2008); QCVN 11:2012/BLĐTBXH.");
@@ -1930,6 +1981,8 @@ async function exportQuality(){
             x=x.replace(new RegExp('(<w:footerReference[^>]*)r:id="'+rid+'"','g'),'$1r:id="'+nid+'"');
           });
         }
+        // đợt không nghiệm thu hoàn thành thì bỏ PHẦN VII khỏi đợt đó
+        x=cutBlock(x,"{{HTHM_BEGIN}}","{{HTHM_END}}",p.htm!==false);
         x=x.split("{{DOT}}").join(xescQ(dotVal));
         x=x.split("{{DS_THANG}}").join(xescQ(pNames));
         if(phases.length>1)
@@ -1940,6 +1993,64 @@ async function exportQuality(){
       doc=head+body+tail;
       zip.file(relsPath,relsXml);
       zip.file("[Content_Types].xml",ctXml);
+    }
+    // ----- Biên bản bàn giao: 1 bản cho mỗi đợt có nghiệm thu hoàn thành -----
+    const iBB=doc.indexOf("{{BBG_BEGIN}}"),iBE=doc.indexOf("{{BBG_END}}");
+    if(iBB>=0&&iBE>iBB){
+      const a0=doc.lastIndexOf("<w:p",iBB),a1=doc.indexOf("</w:p>",iBB)+6;
+      const b0=doc.lastIndexOf("<w:p",iBE),b1=doc.indexOf("</w:p>",iBE)+6;
+      const tpl=doc.slice(a1,b0);
+      const dsBBG=phases.filter(p=>p.htm!==false);
+      // footer của biên bản bàn giao: mỗi đợt một bản mang số đợt riêng
+      let relsB=await zip.file("word/_rels/document.xml.rels").async("string");
+      let ctB=await zip.file("[Content_Types].xml").async("string");
+      const mB2=relsB.match(/<Relationship[^>]*Id="(rId\d+)"[^>]*Target="footerBBG\.xml"[^>]*\/>/);
+      const ridBBG=mB2?mB2[1]:null;
+      const srcBBG=zip.file("word/footerBBG.xml")?await zip.file("word/footerBBG.xml").async("string"):"";
+      // bản gốc không còn được tham chiếu -> vẫn phải thay token để file không sót {{...}}
+      if(srcBBG)footerParts["word/footerBBG.xml"]=srcBBG.split("{{DOT}}").join(xescQ((dsBBG[0]&&dsBBG[0].no)||"01"));
+      let maxB=0;for(const m of relsB.matchAll(/Id="rId(\d+)"/g))maxB=Math.max(maxB,+m[1]);
+      let bbg="";
+      dsBBG.forEach((p,k)=>{
+        const pe=phaseElevs(p);
+        const uniq=a=>a.filter((v,i)=>v&&a.indexOf(v)===i).join("; ")||"…";
+        let y=tpl;
+        const M={
+          "{{BBG_PHAN}}":"PHẦN "+ROMAN[9],
+          "{{BBG_TENTB}}":(pe.map(e=>unitPrefix(e)+" "+e.name+(e.model?" "+e.model:"")).join("; ")||"…")+".",
+          "{{BBG_TENTB_EN}}":(pe.map(e=>(e.model||"Lift")+" No. "+e.name).join("; ")||"…"),
+          "{{BBG_SL}}":pad2(pe.length),
+          "{{BBG_MODEL}}":uniq(pe.map(e=>e.model)),
+          "{{BBG_STOPS}}":uniq(pe.map(e=>isCuon(e)?"":e.stops)),
+          "{{BBG_SPEED}}":uniq(pe.map(e=>e.speed)),
+          "{{BBG_TRAVEL}}":uniq(pe.map(e=>isCuon(e)?e.rise:"")),
+          "{{BBG_LOAD}}":uniq(pe.map(e=>isCuon(e)?"":e.load)),
+          "{{BBG_BH}}":(qv("q_baohanh")||"12")+" tháng",
+          "{{BBG_BH_EN}}":(qv("q_baohanh")||"12")+" months",
+          "{{DOT}}":p.no||pad2(k+1)
+        };
+        for(const t in M)y=y.split(t).join(xescQ(M[t]));
+        if(ridBBG&&srcBBG){
+          const nm="footerBBG"+(p.no||pad2(k+1)).replace(/\W/g,"")+".xml";
+          if(footerParts["word/"+nm]===undefined){
+            footerParts["word/"+nm]=srcBBG.split("{{DOT}}").join(xescQ(p.no||pad2(k+1)));
+            maxB+=1;
+            relsB=relsB.replace("</Relationships>",
+              '<Relationship Id="rId'+maxB+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="'+nm+'"/></Relationships>');
+            ctB=ctB.replace("</Types>",
+              '<Override PartName="/word/'+nm+'" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/></Types>');
+            bbgMap[p.no||pad2(k+1)]="rId"+maxB;
+          }
+          const nid=bbgMap[p.no||pad2(k+1)];
+          y=y.replace(new RegExp('(<w:footerReference[^>]*)r:id="'+ridBBG+'"','g'),'$1r:id="'+nid+'"');
+        }
+        if(dsBBG.length>1)y=y.replace(/(<w:t[^>]*>)BIÊN BẢN BÀN GIAO THIẾT BỊ(<\/w:t>)/g,
+            (m,a2,c2)=>a2+"BIÊN BẢN BÀN GIAO THIẾT BỊ – "+xescQ((p.label||"ĐỢT "+p.no).toUpperCase())+c2);
+        bbg+=y;
+      });
+      doc=doc.slice(0,a0)+bbg+doc.slice(b1);
+      zip.file("word/_rels/document.xml.rels",relsB);
+      zip.file("[Content_Types].xml",ctB);
     }
     // danh mục tiêu chuẩn áp dụng: theo loại thiết bị thực có trong hồ sơ
     doc=putBlock(doc,"{{BLOCK_TCAD}}",tcList(els,qv("q_nhasx"),qv("q_mabanve")));
