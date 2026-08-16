@@ -1439,11 +1439,18 @@ function prefillQuality(){
 function defaultParties(){
   const P2=()=>[{n:"",p:""},{n:"",p:""}];
   return [
-    {role:"Chủ đầu tư",           name:"", kg:true,  kt:false, people:P2()},
-    {role:"Tư vấn giám sát",      name:"", kg:true,  kt:true,  people:P2()},
-    {role:"Tổng thầu thi công",   name:"", kg:true,  kt:true,  people:P2()},
-    {role:"Nhà thầu thi công",    name:"", kg:false, kt:true,  people:P2()}
+    {role:"Chủ đầu tư",           name:"", kg:true,  kn:true, kt:false, people:P2()},
+    {role:"Tư vấn giám sát",      name:"", kg:true,  kn:true, kt:true,  people:P2()},
+    {role:"Tổng thầu thi công",   name:"", kg:true,  kn:true, kt:true,  people:P2()},
+    {role:"Nhà thầu thi công",    name:"", kg:false, kn:true, kt:true,  people:P2()}
   ];
+}
+// đơn vị kiểm định độc lập chỉ phát hành hồ sơ kiểm định riêng,
+// không nhận phiếu yêu cầu và không ký biên bản nghiệm thu / kiểm tra
+function laKiemDinh(role){return /kiểm định|giám định/i.test(role||"");}
+function setQPartyRole(i,v){
+  const pt=S.qParties[i];pt.role=v;
+  if(laKiemDinh(v)){pt.kg=false;pt.kn=false;pt.kt=false;renderQParties();}
 }
 function renderQParties(){
   const box=document.getElementById("qpartiesbox");if(!box)return;box.innerHTML="";
@@ -1454,9 +1461,10 @@ function renderQParties(){
       <td><input value="${esc(pe.p)}" placeholder="Chức vụ" onchange="S.qParties[${i}].people[${k}].p=this.value"></td>
       <td class="x"><button class="icb" title="Xóa người" onclick="S.qParties[${i}].people.splice(${k},1);renderQParties()">✕</button></td></tr>`).join("");
     d.innerHTML=`<div class="phead">
-        <div class="f" style="margin:0"><label>Vai trò</label><input value="${esc(pt.role)}" placeholder="VD: Chủ đầu tư" onchange="S.qParties[${i}].role=this.value"></div>
+        <div class="f" style="margin:0"><label>Vai trò</label><input value="${esc(pt.role)}" placeholder="VD: Chủ đầu tư" onchange="setQPartyRole(${i},this.value)"></div>
         <div class="f" style="margin:0"><label>Tên đơn vị</label><input value="${esc(pt.name)}" placeholder="Tên công ty" onchange="S.qParties[${i}].name=this.value"></div>
         <label class="chk"><input type="checkbox" ${pt.kg?"checked":""} onchange="S.qParties[${i}].kg=this.checked">Nhận phiếu YC</label>
+        <label class="chk"><input type="checkbox" ${pt.kn!==false?"checked":""} onchange="S.qParties[${i}].kn=this.checked">Ký BB nghiệm thu</label>
         <label class="chk"><input type="checkbox" ${pt.kt?"checked":""} onchange="S.qParties[${i}].kt=this.checked">Ký BB kiểm tra</label>
         <button class="icb" title="Xóa bên" onclick="S.qParties.splice(${i},1);renderQParties()">✕</button>
       </div>
@@ -1466,7 +1474,7 @@ function renderQParties(){
   });
   const c=document.getElementById("qpartycount");if(c)c.textContent=S.qParties.length;
 }
-function addQParty(){S.qParties.push({role:"",name:"",kg:true,kt:true,people:[{n:"",p:""},{n:"",p:""}]});renderQParties();}
+function addQParty(){S.qParties.push({role:"",name:"",kg:true,kn:true,kt:true,people:[{n:"",p:""},{n:"",p:""}]});renderQParties();}
 
 /* ---------- sinh XML Word cho các khối động ---------- */
 const DOTS="....................", DOTL="...................................................";
@@ -1483,13 +1491,56 @@ function tblPr(widths){
     +'<w:tblLook w:val="0000" w:firstRow="0" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:noHBand="0" w:noVBand="0"/></w:tblPr>'
     +'<w:tblGrid>'+widths.map(w=>'<w:gridCol w:w="'+w+'"/>').join("")+'</w:tblGrid>';
 }
+/* Ngắt dòng tiêu đề "ĐẠI DIỆN ..." theo cụm từ, không cắt giữa một cụm.
+   Ưu tiên ít dòng nhất, sau đó chia cho cân đối -> nhìn gọn và chuyên nghiệp. */
+const CUM_TU=["ĐẠI DIỆN","CHỦ ĐẦU TƯ","BAN QUẢN LÝ","QUẢN LÝ","DỰ ÁN","TƯ VẤN","GIÁM SÁT",
+  "TỔNG THẦU","NHÀ THẦU","THẦU PHỤ","THI CÔNG","LẮP ĐẶT","CUNG CẤP","THANG MÁY","THANG CUỐN",
+  "BĂNG TẢI","ĐƠN VỊ","KIỂM ĐỊNH","XÂY DỰNG","CƠ ĐIỆN","VẬN HÀNH","SỬ DỤNG","KỸ THUẬT"];
+function cumTu(s){
+  const w=String(s||"").trim().split(/\s+/).filter(Boolean),out=[];
+  for(let i=0;i<w.length;){
+    let hit="";
+    for(const t of CUM_TU){
+      const n=t.split(" ").length;
+      if(n>hit.split(" ").length&&w.slice(i,i+n).join(" ")===t)hit=t;
+    }
+    if(hit){out.push(hit);i+=hit.split(" ").length;}
+    else{out.push(w[i]);i++;}
+  }
+  return out;
+}
+function xuongDong(text,wTwip){
+  const max=Math.max(8,Math.floor((wTwip-160)/146)); // ~146 twip mỗi ký tự chữ đậm 13pt
+  const c=cumTu(text),n=c.length;if(!n)return [""];
+  const memo=new Array(n+1);memo[n]={lines:0,mx:0,cut:[]};
+  for(let i=n-1;i>=0;i--){
+    let best=null,acc=0;
+    for(let j=i;j<n;j++){
+      acc+=c[j].length+(j>i?1:0);
+      if(acc>max&&j>i)break;
+      const r=memo[j+1],cand={lines:r.lines+1,mx:Math.max(acc,r.mx),cut:[j+1].concat(r.cut)};
+      // ít dòng nhất -> dòng dài nhất ngắn nhất -> ưu tiên lấp đầy dòng trên trước
+      if(!best||cand.lines<best.lines||(cand.lines===best.lines&&cand.mx<=best.mx))best=cand;
+    }
+    memo[i]=best;
+  }
+  const out=[];let p=0;
+  memo[0].cut.forEach(q=>{out.push(c.slice(p,q).join(" "));p=q;});
+  return out;
+}
+// một đoạn nhiều dòng, ngắt bằng <w:br/> thay vì để Word tự xuống dòng
+function wRunLines(lines,bold){
+  return "<w:r>"+(bold?"<w:rPr><w:b/><w:bCs/></w:rPr>":"")
+    +lines.map((t,i)=>(i?"<w:br/>":"")+'<w:t xml:space="preserve">'+xescQ(t)+"</w:t>").join("")+"</w:r>";
+}
 // bảng chữ ký: mỗi ô là 1 bên, `cols` bên trên một hàng
 // khối ký cuối Phiếu đề nghị nghiệm thu — đơn vị lập phiếu (nhà thầu thang máy)
 function sigYeuCau(parties){
-  const nt=parties.find(p=>p.kg===false)||parties.find(p=>/nhà thầu|thi công thang|đơn vị thi công/i.test(p.role||""))
-           ||parties[parties.length-1];
+  const ds=parties.filter(p=>!laKiemDinh(p.role));
+  const nt=ds.find(p=>/nhà thầu|thi công thang|đơn vị thi công|lắp đặt thang/i.test(p.role||""))
+           ||ds.find(p=>p.kg===false)||ds[ds.length-1]||parties[parties.length-1];
   const pe=nt&&(nt.people||[]).find(z=>(z.n||"").trim());
-  let inner=wPar(wRun("ĐƠN VỊ CUNG CẤP & THI CÔNG THANG MÁY",true),PCEN)
+  let inner=wPar(wRunLines(xuongDong("ĐƠN VỊ CUNG CẤP & THI CÔNG THANG MÁY",6438),true),PCEN)
            +wPar(wRun("(Ký, ghi rõ họ tên)"),PCEN)+wPar("",PCEN);
   if(pe){inner+=wPar(wRun(pe.n,true),PCEN);if((pe.p||"").trim())inner+=wPar(wRun(pe.p),PCEN);}
   else inner+=wPar("",PCEN);
@@ -1509,7 +1560,7 @@ function sigTable(list,cols,kyText){
       const pt=list[i+c];let inner="";
       if(pt){
         // chỉ ghi vai trò, KHÔNG ghi tên công ty -> chừa nhiều chỗ ký hơn
-        inner+=wPar(wRun("ĐẠI DIỆN "+(pt.role||"").toUpperCase(),true),PCEN);
+        inner+=wPar(wRunLines(xuongDong("ĐẠI DIỆN "+(pt.role||"").toUpperCase(),w),true),PCEN);
         inner+=wPar(wRun(kyText),PCEN)+wPar("",PCEN)+wPar("",PCEN)+wPar("",PCEN)+wPar("",PCEN);
         const pe=(pt.people||[]).find(z=>(z.n||"").trim());
         if(pe){inner+=wPar(wRun(pe.n,true),PCEN);if((pe.p||"").trim())inner+=wPar(wRun(pe.p),PCEN);}
@@ -1526,7 +1577,7 @@ function nnRows(list,nam){
   const cp='<w:pPr><w:jc w:val="center"/></w:pPr>';
   // mỗi hàng gói gọn 2 dòng để phiếu vừa 1 trang
   return list.map(pt=>'<w:tr>'
-    +cell(2100,wPar(wRun((pt.role||"").toUpperCase(),true)),1)
+    +cell(2100,wPar(wRunLines(xuongDong((pt.role||"").toUpperCase(),2100),true),cp),1)
     +cell(1900,wPar(wRun("..... giờ ....."),cp)+wPar(wRun("..../..../"+nam),cp),1)
     +cell(2700,wPar(wRun("□  Đồng ý nghiệm thu"))+wPar(wRun("□  Ý kiến khác: ........")))
     +cell(2938,wPar(wRun("Họ và tên: "+DOTS))+wPar(wRun("Chữ ký:")))
@@ -1912,7 +1963,8 @@ async function exportQuality(){
     const nam=map["{{NAM}}"];
     const abc="abcdefghijklmnopqrstuvwxyz";
     let tp="";
-    parties.forEach((pt,i)=>{
+    // thành phần trực tiếp tham gia nghiệm thu = đúng các bên ký biên bản nghiệm thu
+    parties.filter(p=>p.kn!==false).forEach((pt,i)=>{
       tp+=wPar(wRun(abc[i]+". Đại diện "+(pt.role||"")+": "+(pt.name||""),true),PLIST);
       (pt.people&&pt.people.length?pt.people:[{n:"",p:""}]).forEach(pe=>{
         tp+="<w:p>"+PPERS+'<w:r><w:t xml:space="preserve">- Ông/Bà: '+xescQ(pe.n||DOTS)+"</w:t></w:r>"
@@ -1920,7 +1972,7 @@ async function exportQuality(){
       });
     });
     doc=putBlock(doc,"{{BLOCK_TP}}",tp||wPar(""));
-    doc=putBlock(doc,"{{BLOCK_KY}}",sigTable(parties,2,"(Ký, ghi rõ họ tên)"));
+    doc=putBlock(doc,"{{BLOCK_KY}}",sigTable(parties.filter(p=>p.kn!==false),2,"(Ký, ghi rõ họ tên)"));
     doc=putBlock(doc,"{{BLOCK_KY_KT}}",sigTable(parties.filter(p=>p.kt),3,"(Ký, ghi rõ họ tên)"));
     const kg=parties.filter(p=>p.kg);
     doc=putBlock(doc,"{{BLOCK_KG}}",kg.map(pt=>wPar(wRun("- "+(pt.role||"")+": "+(pt.name||DOTL)),PLIST)).join("")||wPar(""));
