@@ -65,7 +65,10 @@ input[type=checkbox],input[type=radio]{width:auto}
 .panel h2{font-family:var(--disp);font-stretch:85%;font-weight:800;font-size:19px;color:var(--navy);display:flex;align-items:center;gap:10px;margin-bottom:6px}
 .panel h2 .no{font-family:var(--mono);font-size:12px;font-weight:500;color:#fff;background:var(--red);border-radius:3px;padding:2px 7px}
 .panel .hint{color:var(--muted);font-size:12.5px;margin-bottom:18px}
+/* min-width:auto của grid item khiến ô ngày (bề rộng tối thiểu lớn) phình cột */
 .grid{display:grid;gap:14px}
+.grid>*,.party .phead>*{min-width:0}
+input,select,textarea{max-width:100%}
 .g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}.g4{grid-template-columns:repeat(4,1fr)}
 @media(max-width:820px){.g2,.g3,.g4{grid-template-columns:1fr}}
 .f label{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:5px}
@@ -142,6 +145,46 @@ table.edit td.x{width:36px;text-align:center}
 .warn{background:#fff6e5;border:1px solid #f0c36d;border-radius:6px;padding:10px 14px;font-size:12.5px;color:#7a5200;margin-bottom:16px}
 .hide{display:none!important}
 footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font-family:var(--mono)}
+
+/* bảng rộng: cuộn ngang trong khung, không kéo lệch cả trang */
+.tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+/* ===== Mobile ===== */
+@media(max-width:760px){
+  body{font-size:15px}
+  .topbar{padding:11px 14px;gap:8px}
+  .topbar .mark{font-size:17px}
+  .topbar .sub{font-size:11px;flex-basis:100%;line-height:1.4}
+  .stepper{margin-left:0;width:100%}
+  .stepper button{flex:1;padding:9px 4px;font-size:11.5px}
+  .wrap{margin:16px auto 56px;padding:0 12px}
+  .panel{padding:16px 14px;margin-bottom:14px}
+  .panel h2{font-size:16px;flex-wrap:wrap;line-height:1.35}
+  .panel .hint{margin-bottom:14px}
+  .party{padding:12px 11px}
+  .choosecard{padding:16px}
+  .drop{padding:22px 14px}
+  input,select,textarea{font-size:16px;padding:9px 10px}   /* ≥16px: iOS không tự phóng to */
+  input[type=checkbox],input[type=radio]{width:20px;height:20px}
+  .btn{padding:12px 18px;font-size:14px}
+  .btn.sm{padding:8px 12px;font-size:13px}
+  .icb{font-size:20px;padding:6px 10px;min-width:34px;min-height:34px}
+  .party .chk{white-space:normal;font-size:12px;display:inline-flex;align-items:center;gap:6px;
+              min-height:34px;padding:2px 0}
+  .party .chk input{margin-right:0}
+  /* bảng chọn bước: xếp dọc cho dễ chạm thay vì 3 cột chật */
+  table.edit.steps thead{display:none}
+  table.edit.steps tbody,table.edit.steps tr,table.edit.steps td{display:block;width:auto}
+  table.edit.steps tr{border-bottom:1px solid var(--line);padding:8px 0}
+  table.edit.steps td{border:none;padding:1px 0}
+  table.edit.steps td:first-child{float:left;width:30px;font-family:var(--mono);
+    color:var(--muted);font-weight:700;padding-top:6px}
+  table.edit.steps td:nth-child(2){margin-left:30px}
+  table.edit.steps td:last-child{margin-left:30px;padding-bottom:4px}
+  .emailbox{padding:14px;max-height:60vh}
+  .sheetbox{padding:10px}
+  .signers{grid-template-columns:1fr}
+}
 
 @media print{
   @page{size:A3 landscape;margin:8mm}
@@ -297,19 +340,19 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font
     </div>
     <h2 style="font-size:15px"><span class="no" style="background:var(--navy)">I</span>Yếu tố ảnh hưởng tiến độ hàng về (thuộc giai đoạn I)</h2>
     <p class="hint">Ví dụ: phê duyệt nội thất/cabin, khách hàng yêu cầu giãn tiến độ hàng về… Mỗi yếu tố chọn <b>Số ngày</b> (cộng thêm ngày) hoặc <b>Mốc ngày</b> (chờ đến ngày đó), và đặt <b>trước</b> hay <b>sau</b> bước sản xuất.</p>
-    <table class="edit" style="margin-top:8px">
+    <div class="tblwrap"><table class="edit" style="margin-top:8px;min-width:520px">
       <thead><tr><th style="width:30px">#</th><th>Yếu tố ảnh hưởng</th><th style="width:96px">Loại</th><th style="width:132px">Giá trị</th><th style="width:118px">Vị trí</th><th style="width:32px"></th></tr></thead>
       <tbody id="factorsbody"></tbody>
-    </table>
+    </table></div>
     <div class="row" style="margin-top:10px">
       <button class="btn gho sm" onclick="addFactor()">+ Thêm yếu tố</button>
       <span style="margin-left:auto" class="sum">Tổng ảnh hưởng hàng về: <span id="factorsum">0</span> ngày</span>
     </div>
     <h2 style="font-size:15px;margin-top:22px"><span class="no" style="background:var(--navy)">II</span>Các bước lắp đặt (thêm/bớt được)</h2>
-    <table class="edit" style="margin-top:10px">
+    <div class="tblwrap"><table class="edit" style="margin-top:10px;min-width:360px">
       <thead><tr><th style="width:34px">#</th><th>Nội dung công việc</th><th style="width:80px">Số ngày</th><th style="width:36px"></th></tr></thead>
       <tbody id="stepsbody"></tbody>
-    </table>
+    </table></div>
     <div class="row" style="margin-top:12px">
       <button class="btn gho sm" onclick="addStep()">+ Thêm bước</button>
       <span style="margin-left:auto" class="sum">Tổng lắp đặt: <span id="instsum">0</span> ngày</span>
@@ -447,7 +490,7 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font
   <div class="panel">
     <h2 style="font-size:16px"><span class="no" style="background:var(--navy)">D</span>Danh sách thang máy &amp; phạm vi nghiệm thu</h2>
     <p class="hint">Khai báo <b>toàn bộ thang của dự án</b>, sau đó chia các <b>đợt nghiệm thu</b> ở mục D3 (1 thang, một số thang, hay tất cả). Loại thang và phòng máy được ghi vào bảng khối lượng của mọi biên bản.</p>
-    <div style="overflow-x:auto">
+    <div class="tblwrap">
     <table class="edit" style="margin-top:8px;min-width:1050px">
       <thead><tr><th style="width:28px">#</th><th style="width:90px">Tên thang</th><th>Vị trí</th><th style="width:150px">Loại thang</th><th style="width:135px">Phòng máy</th><th style="width:130px">Model</th><th style="width:82px">Tải (kg)<br><span style="font-weight:400;text-transform:none">cao nâng (m)</span></th><th style="width:82px">Số người<br><span style="font-weight:400;text-transform:none">góc nghiêng</span></th><th style="width:80px">Vận tốc</th><th style="width:92px">Điểm dừng<br><span style="font-weight:400;text-transform:none">bề rộng bậc</span></th><th style="width:32px"></th></tr></thead>
       <tbody id="qelevsbody"></tbody>
@@ -469,15 +512,25 @@ footer{color:var(--muted);font-size:11.5px;text-align:center;padding:30px 0;font
 
     <h2 style="font-size:15px;margin-top:22px"><span class="no" style="background:var(--navy)">D2</span>Hạng mục khác (tuỳ chọn)</h2>
     <p class="hint">Các hạng mục ngoài thang máy đưa vào bảng khối lượng nghiệm thu: đà thép, bản mã, gối đôn, khối lượng phát sinh theo phụ lục…</p>
-    <table class="edit" style="margin-top:8px">
+    <div class="tblwrap"><table class="edit" style="margin-top:8px;min-width:640px">
       <thead><tr><th style="width:28px">#</th><th>Tên hạng mục</th><th>Diễn giải</th><th style="width:70px">ĐVT</th><th style="width:60px">SL</th><th style="width:110px">Xuất xứ</th><th style="width:32px"></th></tr></thead>
       <tbody id="qextrasbody"></tbody>
-    </table>
+    </table></div>
     <div class="row" style="margin-top:10px"><button class="btn gho sm" onclick="addQExtra()">+ Thêm hạng mục</button></div>
   </div>
 
   <div class="panel">
-    <div class="row" style="justify-content:flex-end;gap:12px">
+    <h2 style="font-size:15px"><span class="no" style="background:var(--navy)">E</span>Kiểu in</h2>
+    <p class="hint">In 2 mặt thì mỗi biên bản phải bắt đầu ở mặt trước của tờ mới. Chọn <b>In 2 mặt</b>, Word sẽ tự chèn một trang trắng vào những tài liệu có số trang lẻ. Ở chế độ này số trang chạy liên tục cho cả bộ hồ sơ (Trang 47/272) thay vì đánh lại từ 1 theo từng biên bản.</p>
+    <div class="grid g2">
+      <div class="f"><label>Chế độ in</label>
+        <select id="q_inhaimat" onchange="qPrintHint()">
+          <option value="1">In 1 mặt — số trang đánh lại theo từng biên bản (Trang 1/3)</option>
+          <option value="2">In 2 mặt — chèn trang trắng cho tài liệu lẻ trang, số trang cả bộ</option>
+        </select>
+      </div>
+    </div>
+    <div class="row" style="justify-content:flex-end;gap:12px;margin-top:18px">
       <span id="q_status" style="font-size:12.5px;color:var(--muted);margin-right:auto"></span>
       <button class="btn pri" onclick="exportQuality()">⬇ Xuất bộ hồ sơ chất lượng (.docx)</button>
     </div>
@@ -1477,7 +1530,7 @@ function renderQParties(){
         <label class="chk"><input type="checkbox" ${pt.kt?"checked":""} onchange="S.qParties[${i}].kt=this.checked">Ký BB kiểm tra</label>
         <button class="icb" title="Xóa bên" onclick="S.qParties.splice(${i},1);renderQParties()">✕</button>
       </div>
-      <table class="edit"><thead><tr><th style="width:30px">#</th><th>Họ và tên</th><th>Chức vụ</th><th style="width:32px"></th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="tblwrap"><table class="edit" style="min-width:340px"><thead><tr><th style="width:30px">#</th><th>Họ và tên</th><th>Chức vụ</th><th style="width:32px"></th></tr></thead><tbody>${rows}</tbody></table></div>
       <div class="row" style="margin-top:8px"><button class="btn gho sm" onclick="S.qParties[${i}].people.push({n:'',p:''});renderQParties()">+ Thêm người</button></div>`;
     box.appendChild(d);
   });
@@ -1611,6 +1664,23 @@ function cutBlock(doc,tokA,tokB,keep){
   const mid=doc.slice(a1,b0);
   return doc.slice(0,a0)+(keep?mid:"")+doc.slice(b1);
 }
+/* In 2 mặt: mỗi section (mỗi biên bản/phiếu, mỗi trang phân cách) phải bắt đầu
+   ở mặt trước của một tờ giấy mới. Word làm việc này bằng ngắt section kiểu
+   "trang lẻ" — gặp section có số trang lẻ thì tự chèn một trang trắng phía sau.
+   Cơ chế đó chỉ có hiệu lực khi số trang chạy liên tục, nên chế độ 2 mặt bỏ
+   việc đánh số lại từ 1 theo từng tài liệu và footer đổi sang số trang của cả bộ. */
+function duplexSect(doc){
+  doc=doc.replace(/<w:pgNumType\b[^>]*\/>/g,"");
+  return doc.replace(/<w:sectPr\b([^>]*)>/g,(m,a)=>
+    /\/$/.test(a)||/<w:type\b/.test(m)?m:'<w:sectPr'+a+'><w:type w:val="oddPage"/>');
+}
+function duplexFooter(ft){return ft.split("SECTIONPAGES").join("NUMPAGES");}
+function qPrintHint(){
+  const st=document.getElementById("q_status");if(!st)return;
+  st.textContent=qv("q_inhaimat")==="2"
+    ?"In 2 mặt: Word sẽ chèn trang trắng khi mở file (bấm Ctrl+A rồi F9 nếu số trang chưa cập nhật)."
+    :"";
+}
 // tách vùng của 1 đợt thành 7 đoạn theo mốc {{SECn_BEGIN}} (mốc bị xoá khỏi kết quả)
 function splitSecs(tpl){
   const at=[];
@@ -1713,7 +1783,7 @@ function renderQPhases(){
         <div class="f" style="margin:0"><label>Tên đợt</label><input value="${esc(p.label)}" onchange="S.qPhases[${i}].label=this.value"></div>
         <button class="icb" title="Xóa đợt" onclick="S.qPhases.splice(${i},1);renderQPhases()">✕</button>
       </div>
-      <table class="edit" style="margin-top:8px"><thead><tr><th></th><th>Bước nghiệm thu trong đợt</th><th>Thang được nghiệm thu ở bước này</th></tr></thead><tbody>${rows}</tbody></table>`;
+      <table class="edit steps" style="margin-top:8px"><thead><tr><th></th><th>Bước nghiệm thu trong đợt</th><th>Thang được nghiệm thu ở bước này</th></tr></thead><tbody>${rows}</tbody></table>`;
     box.appendChild(d);
   });
   const c=document.getElementById("qphasecount");if(c)c.textContent=S.qPhases.length;
@@ -2216,12 +2286,22 @@ async function exportQuality(){
 
 
     for(const k in map)doc=doc.split(k).join(xescQ(map[k]));
+    // in 2 mặt: mỗi tài liệu bắt đầu ở mặt trước của tờ mới -> Word tự chèn
+    // trang trắng vào những section có số trang lẻ
+    const hai=qv("q_inhaimat")==="2";
+    if(hai)doc=duplexSect(doc);
     zip.file("word/document.xml",doc);
     // footer cũng chứa số hiệu tài liệu -> phải thay token giống thân hồ sơ
     for(const f in footerParts){
       let ft=footerParts[f];
       for(const k in map)ft=ft.split(k).join(xescQ(map[k]));
+      if(hai)ft=duplexFooter(ft);
       zip.file(f,ft);
+    }
+    // footer nào không đi qua bước nhân bản thì vẫn phải đổi theo chế độ in
+    if(hai)for(const f in zip.files){
+      if(/^word\/footer.*\.xml$/.test(f)&&footerParts[f]===undefined)
+        zip.file(f,duplexFooter(await zip.file(f).async("string")));
     }
     const blob=await zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",compression:"DEFLATE"});
     const tag=(qv("q_sohd")||congTrinh||"ho_so").replace(/[^\w-]/g,"_").slice(0,40);
