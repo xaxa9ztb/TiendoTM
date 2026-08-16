@@ -1484,6 +1484,21 @@ function tblPr(widths){
     +'<w:tblGrid>'+widths.map(w=>'<w:gridCol w:w="'+w+'"/>').join("")+'</w:tblGrid>';
 }
 // bảng chữ ký: mỗi ô là 1 bên, `cols` bên trên một hàng
+// khối ký cuối Phiếu đề nghị nghiệm thu — đơn vị lập phiếu (nhà thầu thang máy)
+function sigYeuCau(parties){
+  const nt=parties.find(p=>p.kg===false)||parties.find(p=>/nhà thầu|thi công thang|đơn vị thi công/i.test(p.role||""))
+           ||parties[parties.length-1];
+  const pe=nt&&(nt.people||[]).find(z=>(z.n||"").trim());
+  let inner=wPar(wRun("ĐƠN VỊ CUNG CẤP & THI CÔNG THANG MÁY",true),PCEN)
+           +wPar(wRun("(Ký, ghi rõ họ tên)"),PCEN)+wPar("",PCEN);
+  if(pe){inner+=wPar(wRun(pe.n,true),PCEN);if((pe.p||"").trim())inner+=wPar(wRun(pe.p),PCEN);}
+  else inner+=wPar("",PCEN);
+  // ô ký rộng để tiêu đề nằm gọn 1 dòng
+  return '<w:tbl>'+tblPr([3200,6438])
+    +'<w:tr><w:trPr><w:cantSplit/></w:trPr>'
+    +'<w:tc><w:tcPr><w:tcW w:w="3200" w:type="dxa"/>'+TCMAR+'</w:tcPr>'+wPar("")+'</w:tc>'
+    +'<w:tc><w:tcPr><w:tcW w:w="6438" w:type="dxa"/>'+TCMAR+'</w:tcPr>'+inner+'</w:tc></w:tr></w:tbl>';
+}
 function sigTable(list,cols,kyText){
   if(!list.length)return wPar("");
   const w=Math.floor(9638/cols),widths=Array.from({length:cols},()=>w);
@@ -1493,9 +1508,9 @@ function sigTable(list,cols,kyText){
     for(let c=0;c<cols;c++){
       const pt=list[i+c];let inner="";
       if(pt){
+        // chỉ ghi vai trò, KHÔNG ghi tên công ty -> chừa nhiều chỗ ký hơn
         inner+=wPar(wRun("ĐẠI DIỆN "+(pt.role||"").toUpperCase(),true),PCEN);
-        if(pt.name)inner+=wPar(wRun(pt.name.toUpperCase(),true),PCEN);
-        inner+=wPar(wRun(kyText),PCEN)+wPar("",PCEN)+wPar("",PCEN)+wPar("",PCEN);
+        inner+=wPar(wRun(kyText),PCEN)+wPar("",PCEN)+wPar("",PCEN)+wPar("",PCEN)+wPar("",PCEN);
         const pe=(pt.people||[]).find(z=>(z.n||"").trim());
         if(pe){inner+=wPar(wRun(pe.n,true),PCEN);if((pe.p||"").trim())inner+=wPar(wRun(pe.p),PCEN);}
       }else inner=wPar("",PCEN);
@@ -1509,11 +1524,12 @@ function sigTable(list,cols,kyText){
 function nnRows(list,nam){
   const cell=(w,inner,cen)=>'<w:tc><w:tcPr><w:tcW w:w="'+w+'" w:type="dxa"/>'+TCMAR+(cen?'<w:vAlign w:val="center"/>':'')+'</w:tcPr>'+inner+'</w:tc>';
   const cp='<w:pPr><w:jc w:val="center"/></w:pPr>';
+  // mỗi hàng gói gọn 2 dòng để phiếu vừa 1 trang
   return list.map(pt=>'<w:tr>'
-    +cell(2200,wPar(wRun((pt.role||"").toUpperCase(),true)),1)
-    +cell(2000,wPar(wRun("..... giờ ....."),cp)+wPar(wRun("..... /..... /"+nam),cp),1)
-    +cell(2800,wPar(wRun("□  Đồng ý nghiệm thu"))+wPar(wRun("□  Ý kiến khác:"))+wPar(wRun(".........................................")))
-    +cell(2638,wPar(wRun("Họ và tên: "+DOTS))+wPar(wRun("Chữ ký:")))
+    +cell(2100,wPar(wRun((pt.role||"").toUpperCase(),true)),1)
+    +cell(1900,wPar(wRun("..... giờ ....."),cp)+wPar(wRun("..../..../"+nam),cp),1)
+    +cell(2700,wPar(wRun("□  Đồng ý nghiệm thu"))+wPar(wRun("□  Ý kiến khác: ........")))
+    +cell(2938,wPar(wRun("Họ và tên: "+DOTS))+wPar(wRun("Chữ ký:")))
     +'</w:tr>').join("");
 }
 // thay marker nằm trong 1 đoạn <w:p> (hoặc 1 dòng <w:tr>) bằng XML sinh ra
@@ -1944,6 +1960,7 @@ async function exportQuality(){
         // tiêu chí riêng thang chữa cháy: chỉ khi đợt này có thang PCCC
         const peCuon=pe.some(isCuon);
         x=putBlock(x,"{{BLOCK_KT_PCCC}}",pe.some(e=>e.type==="pccc")?ktPcccRows():"",true);
+        x=putBlock(x,"{{BLOCK_KY_YC}}",sigYeuCau(parties));
         x=putBlock(x,"{{BLOCK_TCNT}}",tcNtList(pe,qv("q_nhasx")));
         x=putBlock(x,"{{BLOCK_KT_HM}}",(peCuon?ktCuonRows():"")+ktHangMucRows(S.qExtras),true);
         // ô "Tiêu chuẩn thi công – nghiệm thu áp dụng" trong Biên bản kiểm tra
@@ -1997,9 +2014,12 @@ async function exportQuality(){
     // ----- Biên bản bàn giao: 1 bản cho mỗi đợt có nghiệm thu hoàn thành -----
     const iBB=doc.indexOf("{{BBG_BEGIN}}"),iBE=doc.indexOf("{{BBG_END}}");
     if(iBB>=0&&iBE>iBB){
-      const a0=doc.lastIndexOf("<w:p",iBB),a1=doc.indexOf("</w:p>",iBB)+6;
-      const b0=doc.lastIndexOf("<w:p",iBE),b1=doc.indexOf("</w:p>",iBE)+6;
+      const a0=doc.lastIndexOf("<w:p>",iBB),a1=doc.indexOf("</w:p>",iBB)+6;
+      const b0=doc.lastIndexOf("<w:p>",iBE),b1=doc.indexOf("</w:p>",iBE)+6;
       const tpl=doc.slice(a1,b0);
+      // đoạn mốc {{BBG_BEGIN}} mang sectPr của phần trước -> giữ lại để đóng section đó
+      const pPrA=(doc.slice(a0,a1).match(/<w:pPr>[\s\S]*?<\/w:pPr>/)||[""])[0];
+      const brkPrev=pPrA?"<w:p>"+pPrA+"</w:p>":"";
       const dsBBG=phases.filter(p=>p.htm!==false);
       // footer của biên bản bàn giao: mỗi đợt một bản mang số đợt riêng
       let relsB=await zip.file("word/_rels/document.xml.rels").async("string");
@@ -2048,7 +2068,19 @@ async function exportQuality(){
             (m,a2,c2)=>a2+"BIÊN BẢN BÀN GIAO THIẾT BỊ – "+xescQ((p.label||"ĐỢT "+p.no).toUpperCase())+c2);
         bbg+=y;
       });
-      doc=doc.slice(0,a0)+bbg+doc.slice(b1);
+      // biên bản bàn giao cuối cùng: đưa sectPr của nó thành sectPr của body,
+      // tránh sinh thêm một section rỗng (một trang trắng) ở cuối tài liệu
+      let lastSect="";
+      const PK="<w:p><w:pPr>",SK="</w:pPr></w:p>",iL=bbg.lastIndexOf(PK+"<w:sectPr");
+      if(iL>=0&&bbg.endsWith(SK)){
+        lastSect=bbg.slice(iL+PK.length,bbg.length-SK.length);
+        bbg=bbg.slice(0,iL);
+      }
+      doc=doc.slice(0,a0)+(bbg?brkPrev:"")+bbg+doc.slice(b1);
+      if(lastSect){
+        const ib=doc.lastIndexOf("</w:body>"),is=doc.lastIndexOf("<w:sectPr",ib);
+        if(is>0)doc=doc.slice(0,is)+lastSect+doc.slice(doc.indexOf("</w:sectPr>",is)+11);
+      }
       zip.file("word/_rels/document.xml.rels",relsB);
       zip.file("[Content_Types].xml",ctB);
     }
