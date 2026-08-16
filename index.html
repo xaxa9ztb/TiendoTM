@@ -54,7 +54,9 @@ input[type=checkbox],input[type=radio]{width:auto}
 .party .chk{font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:700;white-space:nowrap}
 .party .chk input{margin-right:5px;vertical-align:-1px}
 .party table.edit{margin-top:12px}
+.party .phead.dot{grid-template-columns:90px 1fr 34px}
 @media(max-width:900px){.party .phead{grid-template-columns:1fr}}
+@media(max-width:760px){.party .phead.dot{grid-template-columns:72px 1fr 32px;gap:8px}}
 .emailbox{border:1px solid var(--line);border-radius:8px;padding:20px 22px;background:#fff;font-family:Calibri,Arial,sans-serif;font-size:13.5px;line-height:1.55;color:#17212f;max-height:520px;overflow:auto}
 .emailbox p{margin:0 0 9px}
 .emailbox ul{margin:0 0 9px 20px}
@@ -1778,7 +1780,7 @@ function renderQPhases(){
                          :"<i style='color:var(--muted);font-size:12px'>Chưa khai báo thang</i>"}</div></td></tr>`;
     }).join("");
     const d=document.createElement("div");d.className="party";
-    d.innerHTML=`<div class="phead" style="grid-template-columns:90px 1fr 34px">
+    d.innerHTML=`<div class="phead dot">
         <div class="f" style="margin:0"><label>Số đợt</label><input value="${esc(p.no)}" onchange="S.qPhases[${i}].no=this.value" placeholder="01"></div>
         <div class="f" style="margin:0"><label>Tên đợt</label><input value="${esc(p.label)}" onchange="S.qPhases[${i}].label=this.value"></div>
         <button class="icb" title="Xóa đợt" onclick="S.qPhases.splice(${i},1);renderQPhases()">✕</button>
