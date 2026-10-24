@@ -1,8 +1,8 @@
 > ## ⚠️ Đã chuyển sang Bộ công cụ dự án
-> Ứng dụng nay là chức năng **Tiến độ thi công thang máy** của **Bộ công cụ dự án**
+> Ứng dụng nay là chức năng **Hồ sơ chất lượng thang máy** của **Bộ công cụ dự án**
 > (repo [`TrackingTS`](https://github.com/xaxa9ztb/TrackingTS)), dành cho **Quản lý dự án và Site Sup**.
 >
-> - Mở: <https://xaxa9ztb.github.io/TrackingTS/> → đăng nhập → **Tiến độ thi công thang máy**
+> - Mở: <https://xaxa9ztb.github.io/TrackingTS/> → đăng nhập → **Hồ sơ chất lượng thang máy**
 > - Mã nguồn hiện tại: `TrackingTS/tools/tiendotm/` (đã gộp kèm toàn bộ lịch sử commit của repo này)
 > - Trang GitHub Pages của repo này chỉ còn **tự chuyển hướng**. Mọi chỉnh sửa từ nay làm trong `TrackingTS`; repo này có thể *Archive*.
 >
