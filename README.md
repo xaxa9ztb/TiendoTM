@@ -1,3 +1,13 @@
+> ## ⚠️ Đã chuyển sang Bộ công cụ dự án
+> Ứng dụng nay là chức năng **Tiến độ thi công thang máy** của **Bộ công cụ dự án**
+> (repo [`TrackingTS`](https://github.com/xaxa9ztb/TrackingTS)), dành cho **Quản lý dự án và Site Sup**.
+>
+> - Mở: <https://xaxa9ztb.github.io/TrackingTS/> → đăng nhập → **Tiến độ thi công thang máy**
+> - Mã nguồn hiện tại: `TrackingTS/tools/tiendotm/` (đã gộp kèm toàn bộ lịch sử commit của repo này)
+> - Trang GitHub Pages của repo này chỉ còn **tự chuyển hướng**. Mọi chỉnh sửa từ nay làm trong `TrackingTS`; repo này có thể *Archive*.
+>
+> Phần dưới đây là tài liệu gốc, giữ lại để tham khảo.
+
 # Lift Schedule Builder — Bảng tiến độ thi công thang máy
 
 Ứng dụng web **tĩnh 100%** (chỉ 1 file `index.html`) — chạy hoàn toàn trên trình duyệt, không cần server, phù hợp GitHub Pages. Dữ liệu hợp đồng KHÔNG được gửi đi bất cứ đâu.
